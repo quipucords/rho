@@ -1,0 +1,383 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.facts &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.facts</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2017 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="c1"># At one point we had a bug where we added a new fact but forgot to</span>
+<span class="c1"># add it to ALL_FACTS, so users couldn&#39;t select it. The way we define</span>
+<span class="c1"># facts below is intended to make it impossible for that to happen</span>
+<span class="c1"># again.</span>
+
+<span class="sd">&quot;&quot;&quot;Defining the set of facts that Rho can scan for.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">rho.utilities</span> <span class="k">import</span> <span class="n">log</span>
+
+<span class="n">ALWAYS_COLLECT</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="n">SENSITIVE_FACTS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="n">DEFAULT_FACTS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="n">ALL_FACTS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+<span class="n">RHEL_FACTS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="n">JBOSS_FACTS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+<span class="c1"># &#39;rho fact list&#39; will print fact documentation in whatever order this</span>
+<span class="c1"># dictionary&#39;s iterator returns them, so need to keep it sorted.</span>
+<span class="n">FACT_DOCS</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="expand_facts"><a class="viewcode-back" href="../../rho.html#rho.facts.expand_facts">[docs]</a><span class="k">def</span> <span class="nf">expand_facts</span><span class="p">(</span><span class="n">fact_names</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Expand a list of facts with implicit facts and short names.</span>
+
+<span class="sd">    :param fact_names: a list of fact names</span>
+<span class="sd">    :returns: a set of facts to collect</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">facts_to_collect</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">fact</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fact</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ALL_FACTS</span>
+
+        <span class="k">if</span> <span class="n">fact</span> <span class="o">==</span> <span class="s1">&#39;default&#39;</span><span class="p">:</span>
+            <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">DEFAULT_FACTS</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">fact</span> <span class="o">==</span> <span class="s1">&#39;rhel&#39;</span><span class="p">:</span>
+            <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">RHEL_FACTS</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">fact</span> <span class="o">==</span> <span class="s1">&#39;jboss&#39;</span><span class="p">:</span>
+            <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">JBOSS_FACTS</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">fact_names</span> <span class="o">==</span> <span class="p">[]:</span>
+        <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">DEFAULT_FACTS</span><span class="p">)</span>
+
+    <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">ALWAYS_COLLECT</span><span class="p">)</span>
+
+    <span class="n">bad_facts</span> <span class="o">=</span> <span class="n">facts_to_collect</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="n">ALL_FACTS</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">bad_facts</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Unknown facts requested: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">bad_facts</span><span class="p">)))</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">facts_to_collect</span></div>
+
+
+<span class="c1"># pylint: disable=too-many-arguments</span>
+<div class="viewcode-block" id="new_fact"><a class="viewcode-back" href="../../rho.html#rho.facts.new_fact">[docs]</a><span class="k">def</span> <span class="nf">new_fact</span><span class="p">(</span><span class="n">fact_name</span><span class="p">,</span> <span class="n">description</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">is_sensitive</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">always_collect</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">categories</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Define a new fact.</span>
+
+<span class="sd">    :param fact_name: the name of the fact.</span>
+<span class="sd">    :param description: a short description of the fact, for &#39;rho fact list&#39;</span>
+<span class="sd">        and the documentation.</span>
+<span class="sd">    :param is_default: whether this fact should be scanned for by default.</span>
+<span class="sd">    :param is_sensitive: whether this fact should be redacted by</span>
+<span class="sd">        &#39;rho fact hash&#39;.</span>
+<span class="sd">    :param always_collect: whether rho should always collect this fact.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">is_default</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;new_fact: is_default must be set, but is not&#39;</span><span class="p">)</span>
+
+    <span class="n">ALL_FACTS</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_sensitive</span><span class="p">:</span>
+        <span class="n">SENSITIVE_FACTS</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_default</span><span class="p">:</span>
+        <span class="n">DEFAULT_FACTS</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">always_collect</span><span class="p">:</span>
+        <span class="n">ALWAYS_COLLECT</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact_name</span><span class="p">)</span>
+
+    <span class="n">FACT_DOCS</span><span class="p">[</span><span class="n">fact_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">description</span>
+
+    <span class="c1"># There&#39;s no point in categorizing a fact that we always collect.</span>
+    <span class="k">if</span> <span class="n">always_collect</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">categories</span>
+
+    <span class="k">if</span> <span class="n">categories</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="n">category</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fact_name</span><span class="p">)</span></div>
+
+
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;connection.host&#39;</span><span class="p">,</span> <span class="s1">&#39;The host address of the connection&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">always_collect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;connection.port&#39;</span><span class="p">,</span> <span class="s1">&#39;The port used for the connection&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">always_collect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;connection.uuid&#39;</span><span class="p">,</span> <span class="s1">&#39;A generated identifier for the connection&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">always_collect</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.bogomips&#39;</span><span class="p">,</span> <span class="s1">&#39;measurement of CPU speed made by the Linux kernel&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.count&#39;</span><span class="p">,</span> <span class="s1">&#39;number of processors&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.core_count&#39;</span><span class="p">,</span> <span class="s1">&#39;number of cores&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.cpu_family&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu family&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.hyperthreading&#39;</span><span class="p">,</span> <span class="s1">&#39;Whether cpu is hyperthreaded&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.model_name&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu model name&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.model_ver&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu model version&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.socket_count&#39;</span><span class="p">,</span> <span class="s1">&#39;number of sockets&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;cpu.vendor_id&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu vendor name&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;date.anaconda_log&#39;</span><span class="p">,</span> <span class="s1">&#39;/root/anaconda-ks.cfg modified time&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;date.date&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;date.filesystem_create&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;uses tune2fs -l on the / filesystem dev found using mount&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;date.machine_id&#39;</span><span class="p">,</span> <span class="s2">&quot;/etc/machine-id modified time&#39;&quot;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;date.yum_history&#39;</span><span class="p">,</span> <span class="s1">&#39;dates from yum history&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;dmi.bios-vendor&#39;</span><span class="p">,</span> <span class="s1">&#39;bios vendor name&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;dmi.bios-version&#39;</span><span class="p">,</span> <span class="s1">&#39;bios version info&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;dmi.processor-family&#39;</span><span class="p">,</span> <span class="s1">&#39;processor family&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;dmi.system-manufacturer&#39;</span><span class="p">,</span> <span class="s1">&#39;system manufacturer&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;etc-issue.etc-issue&#39;</span><span class="p">,</span> <span class="s1">&#39;contents of /etc/issue (or equivalent)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;etc_release.name&#39;</span><span class="p">,</span> <span class="s1">&#39;name of the release&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;etc_release.release&#39;</span><span class="p">,</span> <span class="s1">&#39;release information&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;etc_release.version&#39;</span><span class="p">,</span> <span class="s1">&#39;release version&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;instnum.instnum&#39;</span><span class="p">,</span> <span class="s1">&#39;installation number&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.brms&#39;</span><span class="p">,</span> <span class="s1">&#39;general BRMS information&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.brms.drools-core-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;Drools version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.brms.kie-api-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;KIE API version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.brms.kie-war-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;KIE runtime version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.common-files&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Presence of common files and directories for JBoss EAP&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.deploy-dates&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;List of deployment dates of JBoss EAP installations&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.eap-home&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Find EAP_HOME directories of JBoss EAP installations&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.find-jboss-modules-jar&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Use the find command to find jboss-modules.jar&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.init-files&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Find system services that look JBoss-related&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.installed-versions&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;List of installed versions of JBoss EAP&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.locate-jboss-modules-jar&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Use locate to find jboss-modules.jar&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.jboss-user&#39;</span><span class="p">,</span> <span class="s2">&quot;Whether a user called &#39;jboss&#39; exists&quot;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.packages&#39;</span><span class="p">,</span> <span class="s1">&#39;Installed RPMs that look like JBoss&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.processes&#39;</span><span class="p">,</span> <span class="s1">&#39;Running processes that look like JBoss&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.running-paths&#39;</span><span class="p">,</span> <span class="s1">&#39;Paths of running installs of JBoss EAP&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.eap.summary&#39;</span><span class="p">,</span> <span class="s1">&#39;Summary of JBoss EAP information&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.activemq-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;ActiveMQ version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.brms.summary&#39;</span><span class="p">,</span> <span class="s1">&#39;Summary of BRMS information&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.camel-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;Camel version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.cxf-ver&#39;</span><span class="p">,</span> <span class="s1">&#39;CXF version&#39;</span><span class="p">,</span> <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.fuse.fuse-on-eap&#39;</span><span class="p">,</span> <span class="s1">&#39;Fuse on EAP&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.fuse.init-files&#39;</span><span class="p">,</span> <span class="s1">&#39;Fuse-related init files&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.fuse-on-karaf.find-karaf-jar&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Use the find utility to locate karaf.jar&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.fuse.summary&#39;</span><span class="p">,</span> <span class="s1">&#39;Summary of Fuse information&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;jboss.fuse-on-karaf.karaf-home&#39;</span><span class="p">,</span> <span class="s1">&#39;Karaf home&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">JBOSS_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.certs&#39;</span><span class="p">,</span> <span class="s1">&#39;the list of Red Hat certificates found&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.gpg.is_redhat&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;determines if package is a Red Hat package filtered by GPG keys&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.gpg.last_installed&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;last installed package filtered by GPG keys&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.gpg.last_built&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;last built package filtered by GPG keys&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.gpg.num_rh_packages&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;number of Red Hat packages filtered by GPG keys&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-packages.gpg.num_installed_packages&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;number of installed packages filtered by GPG keys&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-release.name&#39;</span><span class="p">,</span>
+         <span class="s2">&quot;name of package that provides &#39;redhat-release&#39;&quot;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-release.release&#39;</span><span class="p">,</span>
+         <span class="s2">&quot;release of package that provides &#39;redhat-release&#39;&quot;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;redhat-release.version&#39;</span><span class="p">,</span>
+         <span class="s2">&quot;version of package that provides &#39;redhat-release&#39;&quot;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.consumed&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;consumed SKUs from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.cpu.core(s)_per_socket&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;cpu cores per socket from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.cpu.cpu(s)&#39;</span><span class="p">,</span> <span class="s1">&#39;cpus from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.cpu.cpu_socket(s)&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu sockets from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.has_facts_file&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Whether subscription manager has a facts file&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.virt.is_guest&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Whether is a virtual guest from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.virt.host_type&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;Virtual host type from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;subman.virt.uuid&#39;</span><span class="p">,</span> <span class="s1">&#39;Virtual host uuid from subscription manager&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;systemid.system_id&#39;</span><span class="p">,</span> <span class="s1">&#39;Red Hat Network System ID&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;systemid.username&#39;</span><span class="p">,</span> <span class="s1">&#39;Red Hat Network username&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.all&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -a (all)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.hardware_platform&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -i (hardware_platform)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.hostname&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -n (hostname)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_sensitive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.kernel&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -r (kernel)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.os&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -s (os)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;uname.processor&#39;</span><span class="p">,</span> <span class="s1">&#39;uname -p (processor)&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;virt.num_guests&#39;</span><span class="p">,</span> <span class="s1">&#39;the number of virtualized guests&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;virt.num_running_guests&#39;</span><span class="p">,</span> <span class="s1">&#39;the number of running virtualized guests&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;virt.type&#39;</span><span class="p">,</span> <span class="s1">&#39;type of virtual system&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;virt.virt&#39;</span><span class="p">,</span> <span class="s1">&#39;host, guest, or baremetal&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+<span class="n">new_fact</span><span class="p">(</span><span class="s1">&#39;virt-what.type&#39;</span><span class="p">,</span> <span class="s1">&#39;What type of virtualization a system is running&#39;</span><span class="p">,</span>
+         <span class="n">is_default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">categories</span><span class="o">=</span><span class="p">[</span><span class="n">RHEL_FACTS</span><span class="p">])</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

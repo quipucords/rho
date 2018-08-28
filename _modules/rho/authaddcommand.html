@@ -1,0 +1,270 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.authaddcommand &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.authaddcommand</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright (c) 2009-2016 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="c1"># pylint: disable=too-few-public-methods</span>
+
+<span class="sd">&quot;&quot;&quot; AuthAddCommand is used to add authentication credentials</span>
+<span class="sd">for system access</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">uuid</span>
+<span class="kn">from</span> <span class="nn">getpass</span> <span class="k">import</span> <span class="n">getpass</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">utilities</span>
+<span class="kn">from</span> <span class="nn">rho.clicommand</span> <span class="k">import</span> <span class="n">CliCommand</span>
+<span class="kn">from</span> <span class="nn">rho.vault</span> <span class="k">import</span> <span class="n">get_vault</span>
+<span class="kn">from</span> <span class="nn">rho.translation</span> <span class="k">import</span> <span class="n">_</span>
+
+
+<div class="viewcode-block" id="auth_exists"><a class="viewcode-back" href="../../rho.html#rho.authaddcommand.auth_exists">[docs]</a><span class="k">def</span> <span class="nf">auth_exists</span><span class="p">(</span><span class="n">cred_list</span><span class="p">,</span> <span class="n">auth_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Checks whether authentication credential already exists</span>
+
+<span class="sd">    :param cred_list: A list of credential dictionaries</span>
+<span class="sd">    :param auth_name: Name of credential to check for existence</span>
+<span class="sd">    :returns: True if auth_name exists, False otherwise</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">auth_found</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">cred</span> <span class="ow">in</span> <span class="n">cred_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">cred</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">auth_name</span><span class="p">:</span>
+            <span class="n">auth_found</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">auth_found</span></div>
+
+
+<span class="k">def</span> <span class="nf">_save_cred</span><span class="p">(</span><span class="n">vault</span><span class="p">,</span> <span class="n">new_cred</span><span class="p">,</span> <span class="n">cred_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write new credentials in the related file</span>
+
+<span class="sd">    :param vault: Vault object for writing encrypted data</span>
+<span class="sd">    :param new_cred: New credential to be added to the credentials file</span>
+<span class="sd">    :param cred_list: A list of existing credential dictionaries from the</span>
+<span class="sd">        credential file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">utilities</span><span class="o">.</span><span class="n">ensure_config_dir_exists</span><span class="p">()</span>
+    <span class="n">cred_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_cred</span><span class="p">)</span>
+    <span class="n">vault</span><span class="o">.</span><span class="n">dump_as_json_to_file</span><span class="p">(</span><span class="n">cred_list</span><span class="p">,</span> <span class="n">utilities</span><span class="o">.</span><span class="n">CREDENTIALS_PATH</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="make_auth_for_options"><a class="viewcode-back" href="../../rho.html#rho.authaddcommand.make_auth_for_options">[docs]</a><span class="k">def</span> <span class="nf">make_auth_for_options</span><span class="p">(</span><span class="n">options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct the OrderedDict auth given our options.</span>
+
+<span class="sd">    :param options: an options object, from optparse</span>
+<span class="sd">    :returns: an OrderedDict representing the auth being added</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">auth</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()),</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;username&#39;</span><span class="p">:</span> <span class="n">options</span><span class="o">.</span><span class="n">username</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">password</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Provide connection password.&#39;</span><span class="p">))</span>
+        <span class="n">pass_prompt</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">()</span>
+        <span class="n">auth</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pass_prompt</span> <span class="ow">or</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">auth</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">auth</span><span class="p">[</span><span class="s1">&#39;ssh_key_file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">filename</span> <span class="ow">or</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">options</span><span class="o">.</span><span class="n">sudo_password</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Provide password for sudo.&#39;</span><span class="p">))</span>
+        <span class="n">sudo_pass_prompt</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">()</span>
+        <span class="n">auth</span><span class="p">[</span><span class="s1">&#39;sudo_password&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sudo_pass_prompt</span> <span class="ow">or</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">auth</span><span class="p">[</span><span class="s1">&#39;sudo_password&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">auth</span></div>
+
+
+<div class="viewcode-block" id="AuthAddCommand"><a class="viewcode-back" href="../../rho.html#rho.authaddcommand.AuthAddCommand">[docs]</a><span class="k">class</span> <span class="nc">AuthAddCommand</span><span class="p">(</span><span class="n">CliCommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    This command is for creating new auths which can be later associated with</span>
+<span class="sd">    profiles to gather facts.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;usage: %prog auth add [options]&quot;</span><span class="p">)</span>
+        <span class="n">shortdesc</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;add auth credentials to config&quot;</span><span class="p">)</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;adds the authorization credentials to the config&quot;</span><span class="p">)</span>
+
+        <span class="n">CliCommand</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;auth add&quot;</span><span class="p">,</span> <span class="n">usage</span><span class="p">,</span> <span class="n">shortdesc</span><span class="p">,</span> <span class="n">desc</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--name&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;NAME&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;auth credential name - REQUIRED&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--sshkeyfile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;filename&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FILENAME&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;file containing SSH key&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--username&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;USERNAME&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;user name for authenticating&quot;</span>
+                                      <span class="s2">&quot; against target machine - REQUIRED&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--password&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+                               <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;password for authenticating against&quot;</span>
+                                      <span class="s2">&quot; target machine&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--sudo-password&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;sudo_password&quot;</span><span class="p">,</span>
+                               <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;password for running sudo&quot;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--vault&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;vaultfile&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;VAULT&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;file containing vault password for&quot;</span>
+                                      <span class="s2">&quot; scripting&quot;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_validate_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">CliCommand</span><span class="o">.</span><span class="n">_validate_options</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">username</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;You must provide a value for &quot;--name&quot; and &quot;--username&quot;.&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">username</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># need to pass in file or password:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">filename</span> <span class="ow">or</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">password</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;You must provide either &quot;--password&quot; or a value for &#39;</span>
+                    <span class="s1">&#39;&quot;--sshkeyfile&quot;.&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">filename</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">password</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;You must provide either &quot;--password&quot; or a value for &#39;</span>
+                    <span class="s1">&#39;&quot;--sshkeyfile&quot;. You cannot supply both.&#39;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">filename</span><span class="p">:</span>
+            <span class="n">keyfile_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">filename</span><span class="p">))))</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">keyfile_path</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;You must provide a valid file path for&#39;</span>
+                        <span class="s1">&#39; &quot;--sshkeyfile&quot;, &quot;</span><span class="si">%s</span><span class="s1">&quot; could not be found.&#39;</span>
+                        <span class="o">%</span> <span class="n">keyfile_path</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">keyfile_path</span>
+
+    <span class="k">def</span> <span class="nf">_do_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">vault</span> <span class="o">=</span> <span class="n">get_vault</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">vaultfile</span><span class="p">)</span>
+        <span class="n">auth_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">cred_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">CREDENTIALS_PATH</span><span class="p">):</span>
+            <span class="n">cred_list</span> <span class="o">=</span> <span class="n">vault</span><span class="o">.</span><span class="n">load_as_json</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">CREDENTIALS_PATH</span><span class="p">)</span>
+            <span class="n">auth_found</span> <span class="o">=</span> <span class="n">auth_exists</span><span class="p">(</span><span class="n">cred_list</span><span class="p">,</span> <span class="n">auth_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">auth_found</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Auth with name exists&quot;</span><span class="p">))</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">cred</span> <span class="o">=</span> <span class="n">make_auth_for_options</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+        <span class="n">_save_cred</span><span class="p">(</span><span class="n">vault</span><span class="p">,</span> <span class="n">cred</span><span class="p">,</span> <span class="n">cred_list</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Auth &quot;</span><span class="si">%s</span><span class="s1">&quot; was added&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">name</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

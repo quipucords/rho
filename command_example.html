@@ -1,0 +1,184 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Example rho Scan &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Remote Programs" href="remote_programs.html" />
+    <link rel="prev" title="Command Syntax &amp; Usage" href="command_syntax_usage.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="example-rho-scan">
+<h1>Example rho Scan<a class="headerlink" href="#example-rho-scan" title="Permalink to this headline">¶</a></h1>
+<p>Following is the results of an example rho scan. This is the example of the
+profile called ‘big_test’ and it’s host auth mapping utilizing the cached
+connection data. This is for the scan performed on Wed Aug 10 23:33:17 2016.
+Below you will find the example contents for:</p>
+<ul class="simple">
+<li>Host Auth Mapping</li>
+<li>Output</li>
+</ul>
+<p>The following files are created but are encrypted using the rho vault password provided:</p>
+<ul class="simple">
+<li>Inventory</li>
+<li>Scan Profile</li>
+<li>Scan Auths</li>
+</ul>
+<div class="section" id="example-host-auth-mapping">
+<h2>Example Host Auth Mapping<a class="headerlink" href="#example-host-auth-mapping" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Wed</span> <span class="n">Aug</span> <span class="mi">10</span> <span class="mi">23</span><span class="p">:</span><span class="mi">33</span><span class="p">:</span><span class="mi">17</span> <span class="mi">2016</span>
+<span class="o">-------------------------------</span>
+<span class="mf">192.168</span><span class="o">.</span><span class="mf">124.153</span>
+<span class="o">----------------------</span>
+<span class="n">seven</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+<span class="n">eight</span><span class="p">,</span> <span class="n">t_4</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+
+
+<span class="mf">192.168</span><span class="o">.</span><span class="mf">124.162</span>
+<span class="o">----------------------</span>
+<span class="n">two</span><span class="p">,</span> <span class="n">t_2</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+
+
+<span class="mf">192.168</span><span class="o">.</span><span class="mf">124.174</span>
+<span class="o">----------------------</span>
+<span class="n">one</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+<span class="n">five</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+<span class="n">seven</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+
+
+<span class="mf">192.168</span><span class="o">.</span><span class="mf">124.15</span>
+<span class="o">----------------------</span>
+<span class="n">five</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+<span class="n">seven</span><span class="p">,</span> <span class="n">root</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+
+
+<span class="mf">192.168</span><span class="o">.</span><span class="mf">121.007</span>
+<span class="o">----------------------</span>
+<span class="n">six</span><span class="p">,</span> <span class="n">vagrant</span><span class="p">,</span> <span class="o">********</span><span class="p">,</span> <span class="n">empty</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="facts">
+<h2>Facts<a class="headerlink" href="#facts" title="Permalink to this headline">¶</a></h2>
+<p>The facts collected were:</p>
+<ul class="simple">
+<li>uname.hostname</li>
+<li>uname.os</li>
+<li>date.date</li>
+<li>cpu.bogomips</li>
+<li>cpu.vendor_id</li>
+<li>redhat-release.name</li>
+<li>redhat-packages.num_installed_packages</li>
+</ul>
+</div>
+<div class="section" id="example-output">
+<h2>Example Output<a class="headerlink" href="#example-output" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cpu</span><span class="o">.</span><span class="n">bogomips</span><span class="p">,</span><span class="n">cpu</span><span class="o">.</span><span class="n">vendor_id</span><span class="p">,</span><span class="n">date</span><span class="o">.</span><span class="n">date</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">packages</span><span class="o">.</span><span class="n">num_installed_packages</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">release</span><span class="o">.</span><span class="n">name</span><span class="p">,</span><span class="n">uname</span><span class="o">.</span><span class="n">hostname</span><span class="p">,</span><span class="n">uname</span><span class="o">.</span><span class="n">os</span>
+<span class="mf">5587.07</span><span class="p">,</span><span class="n">GenuineIntel</span><span class="p">,</span><span class="n">Thu</span> <span class="n">Aug</span> <span class="mi">11</span> <span class="mi">14</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">46</span> <span class="n">EDT</span> <span class="mi">2016</span><span class="p">,</span><span class="mi">324</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">server</span><span class="p">,</span><span class="n">localhost</span><span class="o">.</span><span class="n">localdomain</span><span class="p">,</span><span class="n">Linux</span>
+<span class="mf">5587.07</span><span class="p">,</span><span class="n">GenuineIntel</span><span class="p">,</span><span class="n">Thu</span> <span class="n">Aug</span> <span class="mi">11</span> <span class="mi">14</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">46</span> <span class="n">EDT</span> <span class="mi">2016</span><span class="p">,</span><span class="mi">328</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">server</span><span class="p">,</span><span class="n">localhost</span><span class="o">.</span><span class="n">localdomain</span><span class="p">,</span><span class="n">Linux</span>
+<span class="mf">5587.07</span><span class="p">,</span><span class="n">GenuineIntel</span><span class="p">,</span><span class="n">Thu</span> <span class="n">Aug</span> <span class="mi">11</span> <span class="mi">14</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">46</span> <span class="n">EDT</span> <span class="mi">2016</span><span class="p">,</span><span class="mi">324</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">server</span><span class="p">,</span><span class="n">localhost</span><span class="o">.</span><span class="n">localdomain</span><span class="p">,</span><span class="n">Linux</span>
+<span class="mf">5587.07</span><span class="p">,</span><span class="n">GenuineIntel</span><span class="p">,</span><span class="n">Thu</span> <span class="n">Aug</span> <span class="mi">11</span> <span class="mi">14</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">46</span> <span class="n">EDT</span> <span class="mi">2016</span><span class="p">,</span><span class="mi">324</span><span class="p">,</span><span class="n">redhat</span><span class="o">-</span><span class="n">release</span><span class="o">-</span><span class="n">server</span><span class="p">,</span><span class="n">localhost</span><span class="o">.</span><span class="n">localdomain</span><span class="p">,</span><span class="n">Linux</span>
+<span class="mf">5587.07</span><span class="p">,</span><span class="n">GenuineIntel</span><span class="p">,</span><span class="n">Thu</span> <span class="n">Aug</span> <span class="mi">11</span> <span class="mi">14</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">46</span> <span class="n">EDT</span> <span class="mi">2016</span><span class="p">,</span><span class="mi">379</span><span class="p">,</span><span class="n">centos</span><span class="o">-</span><span class="n">release</span><span class="p">,</span><span class="n">rho</span><span class="o">-</span><span class="n">dev</span><span class="o">.</span><span class="n">example</span><span class="o">.</span><span class="n">com</span><span class="p">,</span><span class="n">Linux</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Example rho Scan</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example-host-auth-mapping">Example Host Auth Mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#facts">Facts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-output">Example Output</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="command_syntax_usage.html" title="previous chapter">Command Syntax &amp; Usage</a></li>
+      <li>Next: <a href="remote_programs.html" title="next chapter">Remote Programs</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/command_example.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

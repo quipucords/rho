@@ -1,0 +1,722 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.utilities &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.utilities</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright (c) 2009-2016 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="sd">&quot;&quot;&quot; A set of reusable methods common to many of the commands &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="k">import</span> <span class="n">move</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="k">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">sh</span>
+<span class="kn">from</span> <span class="nn">xdg.BaseDirectory</span> <span class="k">import</span> <span class="n">xdg_data_home</span><span class="p">,</span> <span class="n">xdg_config_home</span>
+<span class="kn">from</span> <span class="nn">rho.translation</span> <span class="k">import</span> <span class="n">_</span>
+
+
+<span class="n">RHO_PATH</span> <span class="o">=</span> <span class="s1">&#39;rho&#39;</span>
+<span class="n">CONFIG_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xdg_config_home</span><span class="p">,</span> <span class="n">RHO_PATH</span><span class="p">)</span>
+<span class="n">DATA_DIR</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xdg_data_home</span><span class="p">,</span> <span class="n">RHO_PATH</span><span class="p">)</span>
+<span class="n">CREDENTIALS_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR</span><span class="p">,</span> <span class="s1">&#39;credentials&#39;</span><span class="p">)</span>
+<span class="n">PROFILES_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR</span><span class="p">,</span> <span class="s1">&#39;profiles&#39;</span><span class="p">)</span>
+<span class="n">PING_INVENTORY_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">CONFIG_DIR</span><span class="p">,</span> <span class="s1">&#39;ping-inventory.yml&#39;</span><span class="p">)</span>
+<span class="n">RHO_LOG</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">,</span> <span class="s1">&#39;rho_log&#39;</span><span class="p">)</span>
+<span class="n">PING_LOG_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">,</span> <span class="s1">&#39;ping_log&#39;</span><span class="p">)</span>
+<span class="n">ANSIBLE_LOG_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">,</span> <span class="s1">&#39;ansible_log&#39;</span><span class="p">)</span>
+<span class="n">SCAN_LOG_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">,</span> <span class="s1">&#39;scan_log&#39;</span><span class="p">)</span>
+
+<span class="n">PROFILE_HOSTS_SUFIX</span> <span class="o">=</span> <span class="s1">&#39;_hosts.yml&#39;</span>
+<span class="n">PROFILE_HOST_AUTH_MAPPING_SUFFIX</span> <span class="o">=</span> <span class="s1">&#39;_host_auth_mapping&#39;</span>
+
+<span class="n">PLAYBOOK_DEV_PATH</span> <span class="o">=</span> <span class="s1">&#39;rho_playbook.yml&#39;</span>
+<span class="n">PLAYBOOK_RPM_PATH</span> <span class="o">=</span> <span class="s1">&#39;/usr/share/ansible/rho/rho_playbook.yml&#39;</span>
+
+<span class="n">PASSWORD_MASKING</span> <span class="o">=</span> <span class="s1">&#39;********&#39;</span>
+
+
+<span class="c1"># &#39;log&#39; is a convenience for getting the appropriate logger from the</span>
+<span class="c1"># logging module. Use it like this:</span>
+<span class="c1">#</span>
+<span class="c1">#   from rho.utilities import log</span>
+<span class="c1">#   ...</span>
+<span class="c1">#   log.error(&#39;Too many Tribbles!&#39;)</span>
+
+<span class="c1"># pylint: disable=invalid-name</span>
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;rho&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="setup_logging"><a class="viewcode-back" href="../../rho.html#rho.utilities.setup_logging">[docs]</a><span class="k">def</span> <span class="nf">setup_logging</span><span class="p">(</span><span class="n">verbosity</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up Python logging for Rho.</span>
+
+<span class="sd">    Must be run after ensure_data_dir_exists().</span>
+
+<span class="sd">    :param verbosity: verbosity level, as measured in -v&#39;s on the command line.</span>
+<span class="sd">        Can be None for default.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">verbosity</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">log_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span>
+    <span class="k">elif</span> <span class="n">verbosity</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">log_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">log_level</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
+
+    <span class="c1"># Using basicConfig here means that all log messages, even</span>
+    <span class="c1"># those not coming from rho, will go to the log file</span>
+    <span class="n">FORMAT</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%(asctime)-15s</span><span class="s1">: </span><span class="si">%(message)s</span><span class="s1">&#39;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">RHO_LOG</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="n">FORMAT</span><span class="p">)</span>
+    <span class="c1"># but we only adjust the log level for the &#39;rho&#39; logger.</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">log_level</span><span class="p">)</span>
+    <span class="c1"># the StreamHandler sends warnings and above to stdout, but</span>
+    <span class="c1"># only for messages going to the &#39;rho&#39; logger, i.e. Rho</span>
+    <span class="c1"># output.</span>
+    <span class="n">stderr_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+    <span class="n">stderr_handler</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">WARNING</span><span class="p">)</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">stderr_handler</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_discovery_scan"><a class="viewcode-back" href="../../rho.html#rho.utilities.process_discovery_scan">[docs]</a><span class="k">def</span> <span class="nf">process_discovery_scan</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of a discovery scan.</span>
+
+<span class="sd">    :param line: a line from the discovery scan_log</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">log_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_ANSIBLE_LOG&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">rho_cred</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_CREDENTIAL_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">hosts_processed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_HOST_PROCESSED&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+    <span class="n">hosts_successful</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_HOST_SUCCESSFUL&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+    <span class="n">hosts_unreachable</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_HOST_UNREACHABLE&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+    <span class="n">hosts_failed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;RHO_HOST_FAILED&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">))</span>
+
+    <span class="n">print_status</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;SUCCESS&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">hosts_successful</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">hosts_processed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_SUCCESSFUL&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_successful</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_PROCESSED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_processed</span><span class="p">)</span>
+        <span class="n">print_status</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="s1">&#39;FAILED&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">hosts_failed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">hosts_processed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_FAILED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_failed</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_PROCESSED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_processed</span><span class="p">)</span>
+        <span class="n">print_status</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">elif</span> <span class="s1">&#39;UNREACHABLE&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+        <span class="n">hosts_unreachable</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">hosts_processed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_UNREACHABLE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_unreachable</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_HOST_PROCESSED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hosts_processed</span><span class="p">)</span>
+        <span class="n">print_status</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># Display every 5 processed</span>
+    <span class="k">if</span> <span class="n">hosts_processed</span> <span class="o">%</span> <span class="mi">5</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">print_status</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">log_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span> <span class="s1">&#39;ab&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">logfile</span><span class="p">:</span>
+                <span class="n">logfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;******* </span><span class="si">%s</span><span class="s1"> *******&#39;</span> <span class="o">%</span>
+                              <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">())</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)))</span>
+                <span class="n">logfile</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> hosts processed with credential </span><span class="si">%s</span><span class="s1">. &#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">hosts_processed</span><span class="p">,</span> <span class="n">rho_cred</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">hosts_successful</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> hosts connected successfully with &#39;</span>
+                    <span class="s1">&#39;credential </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hosts_successful</span><span class="p">,</span> <span class="n">rho_cred</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">hosts_failed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> hosts failed to connect with &#39;</span>
+                    <span class="s1">&#39;credential </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hosts_failed</span><span class="p">,</span> <span class="n">rho_cred</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="n">hosts_unreachable</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> hosts were unreachable.&#39;</span> <span class="o">%</span> <span class="n">hosts_unreachable</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_host_scan"><a class="viewcode-back" href="../../rho.html#rho.utilities.process_host_scan">[docs]</a><span class="k">def</span> <span class="nf">process_host_scan</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of a discovery scan.</span>
+
+<span class="sd">    :param line: a line from the discovery scan_log</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ansible_verbosity</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ANSIBLE_VERBOSITY&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">))</span>
+    <span class="n">truncate</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">ansible_verbosity</span><span class="p">:</span>
+        <span class="n">truncate</span> <span class="o">=</span> <span class="n">ansible_verbosity</span>
+
+    <span class="n">print_line</span> <span class="o">=</span> <span class="n">truncate</span>
+    <span class="n">playbook_started</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">truncated</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;TASK&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;PLAY&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">print_line</span> <span class="o">=</span> <span class="n">truncate</span>
+        <span class="n">playbook_started</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">truncated</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="s1">&#39;FAILED!&#39;</span> <span class="ow">in</span> <span class="n">line</span> <span class="ow">or</span> <span class="s1">&#39;module_stderr&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">print_line</span> <span class="o">=</span> <span class="n">truncate</span> <span class="k">if</span> <span class="n">truncate</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="k">else</span> <span class="mi">4</span>
+    <span class="k">elif</span> <span class="n">print_line</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">line_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">char_truncate</span> <span class="o">=</span> <span class="n">truncate</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">if</span> <span class="n">line_len</span> <span class="o">&gt;</span> <span class="n">char_truncate</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">char_truncate</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># pylint: disable=W0703</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;...&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        <span class="n">print_line</span> <span class="o">=</span> <span class="n">print_line</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">print_line</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">truncated</span> <span class="ow">and</span> <span class="n">playbook_started</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;-- output truncated --&#39;</span><span class="p">))</span>
+        <span class="n">truncated</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="tail_log"><a class="viewcode-back" href="../../rho.html#rho.utilities.tail_log">[docs]</a><span class="k">def</span> <span class="nf">tail_log</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">ansible_verbosity</span><span class="p">,</span> <span class="n">process_output</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Follow and provide host scan output</span>
+
+<span class="sd">    :param path: tuple containing the path to file to follow</span>
+<span class="sd">    :param ansible_verbosity: the verbosity level</span>
+<span class="sd">    :param process_output: the method to process the output</span>
+<span class="sd">    :param env: the enviroment to add to tail process</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;tail_log must have a nonempty path for logs&#39;</span><span class="p">)</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;ANSIBLE_VERBOSITY&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ansible_verbosity</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;RHO_ANSIBLE_LOG&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+    <span class="k">if</span> <span class="n">env</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">env</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">env</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="c1"># pylint: disable=no-member</span>
+    <span class="n">process</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="s1">&#39;-f&#39;</span><span class="p">,</span> <span class="s1">&#39;-n&#39;</span><span class="p">,</span> <span class="s1">&#39;+0&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">_out</span><span class="o">=</span><span class="n">process_output</span><span class="p">,</span>
+                      <span class="n">_bg</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">_bg_exc</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">process</span></div>
+
+
+<div class="viewcode-block" id="ensure_config_dir_exists"><a class="viewcode-back" href="../../rho.html#rho.utilities.ensure_config_dir_exists">[docs]</a><span class="k">def</span> <span class="nf">ensure_config_dir_exists</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Ensure the Rho configuration directory exists.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">CONFIG_DIR</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">CONFIG_DIR</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ensure_data_dir_exists"><a class="viewcode-back" href="../../rho.html#rho.utilities.ensure_data_dir_exists">[docs]</a><span class="k">def</span> <span class="nf">ensure_data_dir_exists</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Ensure the Rho data directory exists.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">):</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">DATA_DIR</span><span class="p">)</span></div>
+
+
+<span class="c1"># pylint: disable=unused-argument</span>
+<div class="viewcode-block" id="multi_arg"><a class="viewcode-back" href="../../rho.html#rho.utilities.multi_arg">[docs]</a><span class="k">def</span> <span class="nf">multi_arg</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">opt_str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">parser</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Call back function for arg-parse for when arguments are multiple</span>
+
+<span class="sd">    :param option: The option</span>
+<span class="sd">    :param opt_str: The option string</span>
+<span class="sd">    :param value: The value</span>
+<span class="sd">    :param parser: The parser for handling the option</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">parser</span><span class="o">.</span><span class="n">rargs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;-&quot;</span><span class="p">:</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">parser</span><span class="o">.</span><span class="n">rargs</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)]</span>
+            <span class="k">break</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">option</span><span class="o">.</span><span class="n">dest</span><span class="p">):</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">option</span><span class="o">.</span><span class="n">dest</span><span class="p">))</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">parser</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">option</span><span class="o">.</span><span class="n">dest</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span></div>
+
+
+<span class="c1"># Read in a file and make it a list</span>
+<span class="k">def</span> <span class="nf">_read_in_file</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">hosts</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">hosts</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="n">filename</span><span class="p">)),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">hosts</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+        <span class="n">hosts</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">EnvironmentError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;Error reading from </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">err</span><span class="p">))</span>
+        <span class="n">hosts</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">result</span>
+
+
+<span class="c1"># Makes sure the hosts passed in are in a format Ansible</span>
+<span class="c1"># understands.</span>
+<span class="c1"># pylint: disable=too-many-locals, too-many-branches, too-many-statements</span>
+<div class="viewcode-block" id="read_ranges"><a class="viewcode-back" href="../../rho.html#rho.utilities.read_ranges">[docs]</a><span class="k">def</span> <span class="nf">read_ranges</span><span class="p">(</span><span class="n">ranges_or_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process a range list from the user.</span>
+
+<span class="sd">    This function reads a hosts file if necessary, validates that all</span>
+<span class="sd">    IP ranges are in Ansible format, and rewrites CIDR address ranges</span>
+<span class="sd">    to Ansible format if necessary.</span>
+
+<span class="sd">    :param ranges_or_path: either a list of IP address ranges or a one-element</span>
+<span class="sd">        list where the one element is the path of a file with ranges.</span>
+<span class="sd">    :returns: list of IP address ranges in Ansible format</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">invalid_path</span> <span class="o">=</span> <span class="n">check_path_validity</span><span class="p">([</span><span class="n">ranges_or_path</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="k">if</span> <span class="n">ranges_or_path</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">ranges_or_path</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">hosts</span> <span class="o">=</span> <span class="n">_read_in_file</span><span class="p">(</span><span class="n">ranges_or_path</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="n">invalid_path</span> <span class="o">==</span> <span class="p">[]</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">ranges_or_path</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t interpret </span><span class="si">%s</span><span class="s2"> as host file because &quot;</span>
+                    <span class="s2">&quot;no such file exists.&quot;</span><span class="p">),</span> <span class="n">ranges_or_path</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hosts</span> <span class="o">=</span> <span class="n">ranges_or_path</span>
+
+    <span class="c1"># Regex for octet, CIDR bit range, and check</span>
+    <span class="c1"># to see if it is like an IP/CIDR</span>
+    <span class="n">octet_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])&#39;</span>
+    <span class="n">bit_range</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;(3[0-2]|[1-2][0-9]|[0-9])&#39;</span>
+    <span class="n">relaxed_ip_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;[0-9]*\.[0-9]*\.[0-9\[\]:]*\.[0-9\[\]:]*&#39;</span>
+    <span class="n">relaxed_cidr_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*\/[0-9]*&#39;</span>
+    <span class="n">relaxed_invalid_ip_range</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*-&#39;</span> \
+                               <span class="sa">r</span><span class="s1">&#39;[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*&#39;</span>
+
+    <span class="c1"># type IP:          192.168.0.1</span>
+    <span class="c1"># type CIDR:        192.168.0.0/16</span>
+    <span class="c1"># type RANGE 1:     192.168.0.[1:15]</span>
+    <span class="c1"># type RANGE 2:     192.168.[2:18].1</span>
+    <span class="c1"># type RANGE 3:     192.168.[2:18].[4:46]</span>
+    <span class="n">ip_regex_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">r</span><span class="s1">&#39;^</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">octet_regex</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;^</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\/</span><span class="si">{1}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">octet_regex</span><span class="p">,</span> <span class="n">bit_range</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;^</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.\[</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{0}</span><span class="s1">\]$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">octet_regex</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;^</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.\[</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{0}</span><span class="s1">\]\.</span><span class="si">{0}</span><span class="s1">$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">octet_regex</span><span class="p">),</span>
+        <span class="sa">r</span><span class="s1">&#39;^</span><span class="si">{0}</span><span class="s1">\.</span><span class="si">{0}</span><span class="s1">\.\[</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{0}</span><span class="s1">\]\.\[</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{0}</span><span class="s1">\]$&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">octet_regex</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="c1"># type HOST:                abcd</span>
+    <span class="c1"># type HOST NUMERIC RANGE:  abcd[2:4].foo.com</span>
+    <span class="c1"># type HOST ALPHA RANGE:    abcd[a:f].foo.com</span>
+    <span class="n">host_regex_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">r</span><span class="s1">&#39;[a-zA-Z0-9-\.]+&#39;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s1">&#39;[a-zA-Z0-9-\.]*\[[0-9]+:[0-9]+\]*[a-zA-Z0-9-\.]*&#39;</span><span class="p">,</span>
+        <span class="sa">r</span><span class="s1">&#39;[a-zA-Z0-9-\.]*\[[a-zA-Z]</span><span class="si">{1}</span><span class="s1">:[a-zA-Z]</span><span class="si">{1}</span><span class="s1">\][a-zA-Z0-9-\.]*&#39;</span><span class="p">]</span>
+
+    <span class="n">normalized_hosts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">host_errors</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">host</span> <span class="ow">in</span> <span class="n">hosts</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">host_range</span> <span class="o">=</span> <span class="n">host</span>
+
+        <span class="n">ip_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">relaxed_ip_pattern</span><span class="p">,</span> <span class="n">host_range</span><span class="p">)</span>
+        <span class="n">cidr_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">relaxed_cidr_pattern</span><span class="p">,</span> <span class="n">host_range</span><span class="p">)</span>
+        <span class="n">invalid_ip_range_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">relaxed_invalid_ip_range</span><span class="p">,</span>
+                                          <span class="n">host_range</span><span class="p">)</span>
+        <span class="n">is_likely_ip</span> <span class="o">=</span> <span class="n">ip_match</span> <span class="ow">and</span> <span class="n">ip_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">host_range</span><span class="p">)</span>
+        <span class="n">is_likely_cidr</span> <span class="o">=</span> <span class="n">cidr_match</span> <span class="ow">and</span> <span class="n">cidr_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">host_range</span><span class="p">)</span>
+        <span class="n">is_likely_invalid_ip_range</span> <span class="o">=</span> <span class="p">(</span><span class="n">invalid_ip_range_match</span> <span class="ow">and</span>
+                                      <span class="n">invalid_ip_range_match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span>
+                                      <span class="nb">len</span><span class="p">(</span><span class="n">host_range</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">is_likely_invalid_ip_range</span><span class="p">:</span>
+            <span class="n">err_message</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> is not a valid IP range format&#39;</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_message</span> <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host_range</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">is_likely_ip</span> <span class="ow">or</span> <span class="n">is_likely_cidr</span><span class="p">:</span>
+            <span class="c1"># This is formatted like an IP or CIDR</span>
+            <span class="c1"># (e.g. #.#.#.# or #.#.#.#/#)</span>
+            <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="n">ip_regex_list</span><span class="p">:</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">host_range</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">and</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">host_range</span><span class="p">):</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">host</span>
+                    <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">is_likely_cidr</span><span class="p">:</span>
+                <span class="c1"># Attempt to convert CIDR to ansible range</span>
+                <span class="k">if</span> <span class="n">is_likely_cidr</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">normalized_cidr</span> <span class="o">=</span> <span class="n">cidr_to_ansible</span><span class="p">(</span><span class="n">host_range</span><span class="p">)</span>
+                        <span class="n">result</span> <span class="o">=</span> <span class="n">normalized_cidr</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">validate_error</span><span class="p">:</span>
+                        <span class="n">result</span> <span class="o">=</span> <span class="n">validate_error</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">err_message</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> is not a valid IP or CIDR pattern&#39;</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">err_message</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host_range</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Possibly a host addr</span>
+            <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="n">host_regex_list</span><span class="p">:</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">host_range</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">match</span> <span class="ow">and</span> <span class="n">match</span><span class="o">.</span><span class="n">end</span><span class="p">()</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">host_range</span><span class="p">):</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">host</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> is invalid host&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host_range</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+            <span class="n">host_errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">normalized_hosts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># This is an unexpected case. Allow/log for analysis</span>
+            <span class="n">normalized_hosts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> did not match a pattern or produce error&#39;</span><span class="p">,</span>
+                            <span class="n">host_range</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">host_errors</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">normalized_hosts</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">host_error</span> <span class="ow">in</span> <span class="n">host_errors</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">host_error</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">normalized_hosts</span></div>
+
+
+<div class="viewcode-block" id="NotCIDRException"><a class="viewcode-back" href="../../rho.html#rho.utilities.NotCIDRException">[docs]</a><span class="k">class</span> <span class="nc">NotCIDRException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception for when a string does not look like a CIDR range.&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># pylint: disable=too-many-locals</span>
+<div class="viewcode-block" id="cidr_to_ansible"><a class="viewcode-back" href="../../rho.html#rho.utilities.cidr_to_ansible">[docs]</a><span class="k">def</span> <span class="nf">cidr_to_ansible</span><span class="p">(</span><span class="n">ip_range</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert an IP address range from CIDR to Ansible notation.</span>
+
+<span class="sd">    :param ip_range: the IP range, as a string</span>
+<span class="sd">    :returns: the IP range, as an Ansible-formatted string</span>
+<span class="sd">    :raises NotCIDRException: if ip_range doesn&#39;t look similar to CIDR</span>
+<span class="sd">        notation. If it does look like CIDR but isn&#39;t quite right, print out</span>
+<span class="sd">        error messages and exit.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># In the case of an input error, we want to distinguish between</span>
+    <span class="c1"># strings that are &quot;CIDR-like&quot;, so the user probably intended to</span>
+    <span class="c1"># use CIDR and we should give them a CIDR error message, and not</span>
+    <span class="c1"># at all CIDR-like, in which case we tell the caller to parse it a</span>
+    <span class="c1"># different way.</span>
+    <span class="n">cidr_like</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;[0-9.]*/[0-9]*&#39;</span>
+    <span class="n">err_prefix</span> <span class="o">=</span> <span class="s1">&#39;A error occurred parsing an input host value. &#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">cidr_like</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">NotCIDRException</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">base_address</span><span class="p">,</span> <span class="n">prefix_bits</span> <span class="o">=</span> <span class="n">ip_range</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_prefix</span> <span class="o">+</span> <span class="s1">&#39;IP range </span><span class="si">%s</span><span class="s1"> has invalid format.&#39;</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">prefix_bits</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">prefix_bits</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">prefix_bits</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">prefix_bits</span> <span class="o">&gt;</span> <span class="mi">32</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_prefix</span> <span class="o">+</span> <span class="s1">&#39;Bit mask length </span><span class="si">%s</span><span class="s1"> of IP range </span><span class="si">%s</span><span class="s1"> is not in &#39;</span> \
+            <span class="s1">&#39;the valid range [0,32].&#39;</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">,</span> <span class="n">prefix_bits</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">octet_strings</span> <span class="o">=</span> <span class="n">base_address</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">octet_strings</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_prefix</span> <span class="o">+</span> <span class="s1">&#39;IP address </span><span class="si">%s</span><span class="s1"> (part of IP range </span><span class="si">%s</span><span class="s1">) &#39;</span> \
+            <span class="s1">&#39;does not have exactly 4 octets&#39;</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">,</span> <span class="n">base_address</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">octets</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">octet_strings</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_prefix</span> <span class="o">+</span> <span class="s1">&#39;Empty octet in IP range </span><span class="si">%s</span><span class="s1">&#39;</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">octet_strings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">&gt;</span> <span class="mi">255</span><span class="p">:</span>
+            <span class="n">err_msg</span> <span class="o">=</span> <span class="n">err_prefix</span> <span class="o">+</span> <span class="s1">&#39;IP octet </span><span class="si">%s</span><span class="s1"> (part of IP range </span><span class="si">%s</span><span class="s1">) &#39;</span> \
+                <span class="s1">&#39;is not in the valid range [0,255]&#39;</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">err_msg</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">ip_range</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">octets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+    <span class="n">ansible_out</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="c1"># &quot;prefix_bits&quot; is the number of high-order bits we want to</span>
+        <span class="c1"># keep for the whole CIDR range. &quot;mask&quot; is the number of</span>
+        <span class="c1"># low-order bits we want to mask off. Here prefix_bits is for</span>
+        <span class="c1"># the whole IP address, but mask_bits is just for this octet.</span>
+
+        <span class="k">if</span> <span class="n">prefix_bits</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">ansible_out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;[0:255]&#39;</span>
+        <span class="k">elif</span> <span class="n">prefix_bits</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">8</span><span class="p">:</span>
+            <span class="n">ansible_out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">octets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># The number of bits of this octet that we want to</span>
+            <span class="c1"># preserve</span>
+            <span class="n">this_octet_bits</span> <span class="o">=</span> <span class="n">prefix_bits</span> <span class="o">-</span> <span class="mi">8</span> <span class="o">*</span> <span class="n">i</span>
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">this_octet_bits</span> <span class="o">&lt;</span> <span class="mi">8</span>
+            <span class="c1"># mask is this_octet_bits 1&#39;s followed by (8 -</span>
+            <span class="c1"># this_octet_bits) 0&#39;s.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="p">(</span><span class="mi">8</span> <span class="o">-</span> <span class="n">this_octet_bits</span><span class="p">)</span>
+
+            <span class="n">lower_bound</span> <span class="o">=</span> <span class="n">octets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="n">mask</span>
+            <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">lower_bound</span> <span class="o">+</span> <span class="o">~</span><span class="n">mask</span>
+            <span class="n">ansible_out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;[</span><span class="si">{0}</span><span class="s1">:</span><span class="si">{1}</span><span class="s1">]&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">lower_bound</span><span class="p">,</span> <span class="n">upper_bound</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ansible_out</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="validate_port"><a class="viewcode-back" href="../../rho.html#rho.utilities.validate_port">[docs]</a><span class="k">def</span> <span class="nf">validate_port</span><span class="p">(</span><span class="n">arg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Check that arg is a valid port.</span>
+
+<span class="sd">    :param arg: either a string or an integer.</span>
+<span class="sd">    :returns: The arg, as an integer.</span>
+<span class="sd">    :raises: ValueError, if arg is not a valid port.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">arg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Port value </span><span class="si">%s</span><span class="s1">&#39;</span>
+                             <span class="s1">&#39; should be a positive integer&#39;</span>
+                             <span class="s1">&#39; in the valid range (0-65535)&#39;</span> <span class="o">%</span> <span class="n">arg</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Port value </span><span class="si">%s</span><span class="s1"> should be a positive integer&#39;</span>
+                         <span class="s1">&#39; in the valid range (0-65535)&#39;</span> <span class="o">%</span> <span class="n">arg</span><span class="p">)</span>
+
+    <span class="c1"># We need to support both system and user ports (see</span>
+    <span class="c1"># https://en.wikipedia.org/wiki/Registered_port) because we don&#39;t</span>
+    <span class="c1"># know how the user will have configured their system.</span>
+    <span class="k">if</span> <span class="n">arg</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">arg</span> <span class="o">&gt;</span> <span class="mi">65535</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Port value </span><span class="si">%s</span><span class="s1"> should be a positive integer&#39;</span>
+                         <span class="s1">&#39; in the valid range (0-65535)&#39;</span> <span class="o">%</span> <span class="n">arg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">arg</span></div>
+
+
+<div class="viewcode-block" id="str_to_ascii"><a class="viewcode-back" href="../../rho.html#rho.utilities.str_to_ascii">[docs]</a><span class="k">def</span> <span class="nf">str_to_ascii</span><span class="p">(</span><span class="n">in_string</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Coverts unicode string to ascii string</span>
+
+<span class="sd">    :param in_string: input string to convert to ascii</span>
+<span class="sd">    :returns: ASCII encoded string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">in_string</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;ascii&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">in_string</span></div>
+
+
+<div class="viewcode-block" id="iteritems"><a class="viewcode-back" href="../../rho.html#rho.utilities.iteritems">[docs]</a><span class="k">def</span> <span class="nf">iteritems</span><span class="p">(</span><span class="n">dictionary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Iterate over a dictionary&#39;s (key, value) pairs using Python 2 or 3.</span>
+
+<span class="sd">    :param dictionary: the dictionary to iterate over.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">dictionary</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">is_stringlike</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if an object is a string.</span>
+
+<span class="sd">        This function is for Python 2 and 3 compatibility.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># pylint for python 3 complains that unicode is undefined.</span>
+        <span class="c1"># pylint: disable=undefined-variable</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">unicode</span><span class="p">))</span>  <span class="c1"># noqa</span>
+<span class="k">else</span><span class="p">:</span>
+<div class="viewcode-block" id="is_stringlike"><a class="viewcode-back" href="../../rho.html#rho.utilities.is_stringlike">[docs]</a>    <span class="k">def</span> <span class="nf">is_stringlike</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if an object is a string.</span>
+
+<span class="sd">        This function is for Python 2 and 3 compatibility.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="write_csv_data"><a class="viewcode-back" href="../../rho.html#rho.utilities.write_csv_data">[docs]</a><span class="k">def</span> <span class="nf">write_csv_data</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write csv data with input fieldnames a dictionary of data and the file</span>
+<span class="sd">    path to write to.</span>
+
+<span class="sd">    :param keys: The field names and keys of the dictionary</span>
+<span class="sd">    :param data: The dictionary of data to convert to csv</span>
+<span class="sd">    :param path: The file path to write to</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_temp</span><span class="p">:</span>
+        <span class="c1"># Construct the CSV writer</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span>
+            <span class="n">data_temp</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">keys</span><span class="p">),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Write a CSV header if necessary;</span>
+        <span class="c1"># handle Python 2.6 not having writeheader method</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="mi">6</span><span class="p">:</span>
+            <span class="n">headers</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">fields</span> <span class="ow">in</span> <span class="n">writer</span><span class="o">.</span><span class="n">fieldnames</span><span class="p">:</span>
+                <span class="n">headers</span><span class="p">[</span><span class="n">fields</span><span class="p">]</span> <span class="o">=</span> <span class="n">fields</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+
+        <span class="c1"># Write the data</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">data_temp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">move</span><span class="p">(</span><span class="n">data_temp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="get_config_path"><a class="viewcode-back" href="../../rho.html#rho.utilities.get_config_path">[docs]</a><span class="k">def</span> <span class="nf">get_config_path</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Provides the path for a configuration filename</span>
+
+<span class="sd">    :param filename: The filename to return the config path for</span>
+<span class="sd">    :returns: path to for filename in XDG_CONFIG_HOME associated with rho</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">xdg_config_home</span><span class="p">,</span> <span class="n">RHO_PATH</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="check_path_validity"><a class="viewcode-back" href="../../rho.html#rho.utilities.check_path_validity">[docs]</a><span class="k">def</span> <span class="nf">check_path_validity</span><span class="p">(</span><span class="n">path_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given a list of paths it verifies that all paths are valid absolute</span>
+<span class="sd">    path inputs for a scoped scan. If not it return a list of invalid paths.</span>
+
+<span class="sd">    :param path_list: list of paths to validate</span>
+<span class="sd">    :return: empty list or list of invalid paths</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">invalid_paths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">a_path</span> <span class="ow">in</span> <span class="n">path_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">a_path</span><span class="p">):</span>
+            <span class="n">invalid_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a_path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">invalid_paths</span></div>
+
+
+<div class="viewcode-block" id="strip_prefix"><a class="viewcode-back" href="../../rho.html#rho.utilities.strip_prefix">[docs]</a><span class="k">def</span> <span class="nf">strip_prefix</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove a prefix from a string, if present.</span>
+
+<span class="sd">    :param string: the string to operate on.</span>
+<span class="sd">    :param prefix: the prefix to remove.</span>
+
+<span class="sd">    :returns: string without prefix, if prefix was present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">string</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">string</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">):]</span>
+
+    <span class="k">return</span> <span class="n">string</span></div>
+
+
+<div class="viewcode-block" id="strip_suffix"><a class="viewcode-back" href="../../rho.html#rho.utilities.strip_suffix">[docs]</a><span class="k">def</span> <span class="nf">strip_suffix</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove a suffix from a string, if present.</span>
+
+<span class="sd">    :param string: the string to operate on.</span>
+<span class="sd">    :param suffix: the suffix to remove.</span>
+
+<span class="sd">    :returns: string without suffix, if suffix was present.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">string</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">suffix</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">string</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="n">suffix</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">string</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

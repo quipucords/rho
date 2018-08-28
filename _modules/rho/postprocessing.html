@@ -1,0 +1,1405 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.postprocessing &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.postprocessing</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2017 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="sd">&quot;&quot;&quot;Postprocessing for facts coming from our Ansible playbook.&quot;&quot;&quot;</span>
+
+<span class="c1"># pylint: disable=too-many-lines</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">xml</span>
+
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">utilities</span>
+<span class="kn">from</span> <span class="nn">rho.utilities</span> <span class="k">import</span> <span class="n">log</span>
+
+<span class="c1"># for parsing systemid</span>
+<span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">3</span><span class="p">,):</span>
+    <span class="kn">import</span> <span class="nn">xmlrpc.client</span> <span class="k">as</span> <span class="nn">xmlrpclib</span>  <span class="c1"># pylint: disable=import-error</span>
+    <span class="n">long</span> <span class="o">=</span> <span class="nb">int</span>  <span class="c1"># pylint: disable=invalid-name,redefined-builtin</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">xmlrpclib</span>  <span class="c1"># pylint: disable=import-error</span>
+
+<span class="n">EAP_CLASSIFICATIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;JBoss_4_0_0&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_0_1_SP1&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_0_2&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_0_3_SP1&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_0_4_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Branch_4_0&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_2_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_2_1_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_2_2_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_4_2_3_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_5_0_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-5&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_5_0_1_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-5&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_5_1_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-5&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_6.0.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-6&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBoss_6.1.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-6&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.0.1.GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-7&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.0.2.GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-7&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.1.1.GA&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-7&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.0.CR1&#39;</span><span class="p">:</span> <span class="s1">&#39;JBossAS-7&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.2.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.4.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.0.Beta3&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.3.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-8&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.4.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-9&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.4.2.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-9&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.4.3.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-9&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.4.4.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-10&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.5.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-10&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.5.1.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-10&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.5.2.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;WildFly-10&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_4_2_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-4.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_4_2_0_GA_C&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-4.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_4_3_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-4.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_4_3_0_GA_C&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-4.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_0_0_GA&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.0.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_0_1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.0.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_1_0&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_1_1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.1.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_1_2&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.1.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;JBPAPP_5_2_0&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-5.2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.1.2.GA-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.0.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.1.3.GA-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.0.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.0.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.2.2.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.1.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.0.Final-redhat-2&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.3.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.4.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.5.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.6.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.3.7.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-6.4&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.4.4.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-7.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.5.1.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-7.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;1.5.4.Final-redhat-1&#39;</span><span class="p">:</span> <span class="s1">&#39;EAP-7.0&#39;</span>
+<span class="p">}</span>
+
+<span class="n">BRMS_CLASSIFICATIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;6.4.0.Final-redhat-3&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.3.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.3.0.Final-redhat-5&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.2.0.Final-redhat-4&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.0.3-redhat-6&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.0.3&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.0.3-redhat-4&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.0.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.0.2-redhat-6&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.0.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.0.2-redhat-2&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 6.0.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.3.1.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.3.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.3.0.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.3.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.2.0.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.1.0.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.0.2.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.0.2&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;5.0.1.BRMS&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.0.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;drools-core-5.0.0&#39;</span><span class="p">:</span> <span class="s1">&#39;BRMS 5.0.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;6.5.0.Final&#39;</span><span class="p">:</span> <span class="s1">&#39;Drools 6.5.0&#39;</span>
+<span class="p">}</span>
+
+<span class="n">FUSE_CLASSIFICATIONS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;redhat-630187&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.3.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;redhat-621084&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.2.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;redhat-620133&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.2.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;redhat-611412&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.1.1&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;redhat-610379&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.1.0&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;redhat-60024&#39;</span><span class="p">:</span> <span class="s1">&#39;Fuse-6.0.0&#39;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="raw_output_present"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.raw_output_present">[docs]</a><span class="k">def</span> <span class="nf">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span> <span class="n">this_fact</span><span class="p">,</span> <span class="n">this_var</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Basic sanity checks for processing an Ansible raw command.</span>
+
+<span class="sd">    :param fact_names: the facts to be collected</span>
+<span class="sd">    :param host_vars: all variables collected for a host</span>
+<span class="sd">    :param this_fact: the name of the fact we are processing</span>
+<span class="sd">    :param this_var: the name that Ansible has for our output</span>
+<span class="sd">    :param command: the command that was run</span>
+
+<span class="sd">    :returns: a tuple of</span>
+<span class="sd">        (None or error dict, None or raw command output).</span>
+<span class="sd">        The error dict is suitable for inclusion in the rho output</span>
+<span class="sd">        dictionary. There will not be both errors and raw command</span>
+<span class="sd">        output. If raw command output is returned, it will have</span>
+<span class="sd">        fields &#39;rc&#39; and &#39;stdout_lines&#39; or &#39;results&#39;.</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">        err, output = raw_output_present(...)</span>
+<span class="sd">        if err is not None:</span>
+<span class="sd">            return err</span>
+
+<span class="sd">        ... process output ...</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">this_var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">host_vars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">this_fact</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{},</span> <span class="kc">None</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">this_fact</span><span class="p">:</span> <span class="s1">&#39;Error: &quot;</span><span class="si">{0}</span><span class="s1">&quot; not run&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">command</span><span class="p">)},</span> <span class="kc">None</span>
+
+    <span class="n">raw_output</span> <span class="o">=</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">this_var</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">((</span><span class="s1">&#39;rc&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">raw_output</span> <span class="ow">or</span>
+         <span class="s1">&#39;stdout_lines&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">raw_output</span><span class="p">)</span> <span class="ow">and</span> <span class="s1">&#39;results&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">raw_output</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="p">{</span><span class="n">this_fact</span><span class="p">:</span>
+             <span class="s1">&#39;Error: could not get output from &quot;</span><span class="si">{0}</span><span class="s1">&quot;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">command</span><span class="p">)},</span>
+            <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="n">raw_output</span></div>
+
+
+<span class="c1"># MR is &quot;machine readable&quot;. User-friendly string-based fact FOO has a</span>
+<span class="c1"># machine-friendly representation at fact_dict[FOO + MR]. (Only some</span>
+<span class="c1"># facts have MR representations so far.)</span>
+<span class="n">MR</span> <span class="o">=</span> <span class="s1">&#39;-mr&#39;</span>
+
+<span class="n">JBOSS_EAP_INSTALLED_VERSIONS</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.installed-versions&#39;</span>
+<span class="n">JBOSS_EAP_DEPLOY_DATES</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.deploy-dates&#39;</span>
+<span class="n">JBOSS_EAP_RUNNING_PATHS</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.running-paths&#39;</span>
+
+<span class="n">FIND_WARNING</span> <span class="o">=</span> <span class="s1">&#39;find: WARNING: Hard link count is wrong for /proc: this may&#39;</span> \
+    <span class="s1">&#39; be a bug in your filesystem driver.&#39;</span>
+<span class="n">GENERIC_ERROR</span> <span class="o">=</span> <span class="s1">&#39;error&#39;</span>
+
+
+<span class="c1"># JBoss versions are processed separately from other *-ver data</span>
+<span class="c1"># because they merge data from two input facts and include deploy</span>
+<span class="c1"># dates as well as version strings.</span>
+<span class="c1"># pylint: disable=too-many-branches</span>
+<div class="viewcode-block" id="process_jboss_versions"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_versions">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_versions</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get JBoss version information from the host_vars.</span>
+
+<span class="sd">    :param fact_names: the set of fact names the user requested.</span>
+<span class="sd">    :param host_vars: the host vars from Ansible.</span>
+<span class="sd">    :returns: a dict of key-value pairs to output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># host_vars is not used after this function (data that we return</span>
+    <span class="c1"># is copied to host_vals instead), so by not adding</span>
+    <span class="c1"># jboss.eap.jar_ver and jboss.eap.run_jar_ver to val, we are</span>
+    <span class="c1"># implicitly removing them from the output.</span>
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.jar-ver&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.jar-ver&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;scan for jboss-modules.jar&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.run-jar-ver&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.run-jar-ver&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;scan for running JBoss EAP&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span>
+
+    <span class="n">jboss_releases</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">deploy_dates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">line_format</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;**&#39;</span><span class="p">)</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="n">line_format</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">deploy_date</span> <span class="o">=</span> <span class="n">line_format</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">deploy_dates</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">deploy_date</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">EAP_CLASSIFICATIONS</span><span class="p">:</span>
+                <span class="n">jboss_releases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">EAP_CLASSIFICATIONS</span><span class="p">[</span><span class="n">version</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">version</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                <span class="n">jboss_releases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Unknown-Release: &#39;</span> <span class="o">+</span> <span class="n">version</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">empty_output_message</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Give the right error message for missing data.</span>
+
+<span class="sd">        For data that depends on having Java.</span>
+
+<span class="sd">        :param val: a value. Considered missing if falsey.</span>
+<span class="sd">        :param name: the thing we were searching for.</span>
+<span class="sd">        :returns: the val if true, otherwise a useful error message.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">val</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">val</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;have_java&#39;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s1">&#39;N/A (java not found)&#39;</span>
+        <span class="k">return</span> <span class="s1">&#39;(</span><span class="si">{0}</span><span class="s1"> not found)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">JBOSS_EAP_INSTALLED_VERSIONS</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_INSTALLED_VERSIONS</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">empty_output_message</span><span class="p">(</span><span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">jboss_releases</span><span class="p">),</span>
+                                 <span class="s1">&#39;jboss&#39;</span><span class="p">))</span>
+        <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_INSTALLED_VERSIONS</span> <span class="o">+</span> <span class="n">MR</span><span class="p">]</span> <span class="o">=</span> <span class="n">jboss_releases</span>
+    <span class="k">if</span> <span class="n">JBOSS_EAP_DEPLOY_DATES</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_DEPLOY_DATES</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">empty_output_message</span><span class="p">(</span><span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">deploy_dates</span><span class="p">),</span> <span class="s1">&#39;jboss&#39;</span><span class="p">))</span>
+        <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_DEPLOY_DATES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">]</span> <span class="o">=</span> <span class="n">deploy_dates</span>
+    <span class="k">if</span> <span class="n">JBOSS_EAP_RUNNING_PATHS</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                         <span class="n">JBOSS_EAP_RUNNING_PATHS</span><span class="p">,</span>
+                                         <span class="s1">&#39;jboss_eap_running_paths&#39;</span><span class="p">,</span>
+                                         <span class="s1">&#39;running EAP scan&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">FIND_WARNING</span> <span class="ow">in</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">]:</span>
+            <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_RUNNING_PATHS</span><span class="p">]</span> <span class="o">=</span> <span class="n">GENERIC_ERROR</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_RUNNING_PATHS</span><span class="p">]</span> <span class="o">=</span> <span class="n">empty_output_message</span><span class="p">(</span>
+                <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">],</span> <span class="s1">&#39;running EAP scan&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">host_vars</span><span class="p">[</span><span class="s1">&#39;have_java&#39;</span><span class="p">]:</span>
+                <span class="n">val</span><span class="p">[</span><span class="n">JBOSS_EAP_RUNNING_PATHS</span> <span class="o">+</span> <span class="n">MR</span><span class="p">]</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">val</span></div>
+
+
+<div class="viewcode-block" id="classify_releases"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.classify_releases">[docs]</a><span class="k">def</span> <span class="nf">classify_releases</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">classifications</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Classify release strings using a dictionary.&quot;&quot;&quot;</span>
+
+    <span class="n">releases</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">classifications</span><span class="p">:</span>
+                <span class="n">releases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">classifications</span><span class="p">[</span><span class="n">line</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">releases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;Unknown-Release: &#39;</span> <span class="o">+</span> <span class="n">line</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">releases</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="process_addon_versions"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_addon_versions">[docs]</a><span class="k">def</span> <span class="nf">process_addon_versions</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Classify release strings for JBoss BRMS and FUSE.</span>
+
+<span class="sd">    :param fact_names: the set of fact names that the user requested.</span>
+<span class="sd">    :param host_vars: the host vars from Ansible.</span>
+<span class="sd">    :returns: a dict of key-value pairs to output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="nf">classify</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">classifications</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Classify a particular key.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+            <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                             <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">return</span>
+
+            <span class="n">classes</span> <span class="o">=</span> <span class="n">classify_releases</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">],</span>
+                                        <span class="n">classifications</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">classes</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">classes</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;(</span><span class="si">{0}</span><span class="s1"> not found)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.brms.kie-api-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">BRMS_CLASSIFICATIONS</span><span class="p">)</span>
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.brms.drools-core-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">BRMS_CLASSIFICATIONS</span><span class="p">)</span>
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.brms.kie-war-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">BRMS_CLASSIFICATIONS</span><span class="p">)</span>
+
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.activemq-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">FUSE_CLASSIFICATIONS</span><span class="p">)</span>
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.camel-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">FUSE_CLASSIFICATIONS</span><span class="p">)</span>
+    <span class="n">classify</span><span class="p">(</span><span class="s1">&#39;jboss.cxf-ver&#39;</span><span class="p">,</span> <span class="n">fact_names</span><span class="p">,</span> <span class="n">FUSE_CLASSIFICATIONS</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+<span class="n">JBOSS_EAP_JBOSS_USER</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.jboss-user&#39;</span>
+
+
+<div class="viewcode-block" id="process_id_u_jboss"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_id_u_jboss">[docs]</a><span class="k">def</span> <span class="nf">process_id_u_jboss</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output from &#39;id -u jboss&#39;, as run by Ansible</span>
+
+<span class="sd">    :returns: a dict of key-value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># We use the &#39;id&#39; command to check for jboss because it&#39;s been in</span>
+    <span class="c1"># GNU coreutils since 1992, so it should be present on every</span>
+    <span class="c1"># system we encounter.</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.jboss-user&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss_eap_id_jboss&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;id -u jboss&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">if</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_JBOSS_USER</span><span class="p">:</span> <span class="s2">&quot;User &#39;jboss&#39; present&quot;</span><span class="p">,</span>
+                <span class="n">JBOSS_EAP_JBOSS_USER</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+    <span class="c1"># Don&#39;t output a definitive &quot;not found&quot; unless we see an error</span>
+    <span class="c1"># string that we recognize. We don&#39;t want to assume that any</span>
+    <span class="c1"># nonzero error code means &quot;not found&quot;, because then we would give</span>
+    <span class="c1"># false negatives if the user didn&#39;t have permission to read</span>
+    <span class="c1"># /etc/passwd (or other errors).</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;id: jboss: no such user&#39;</span><span class="p">]</span> <span class="ow">or</span>
+            <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="s1">&#39;id: jboss: No such user&#39;</span><span class="p">]):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_JBOSS_USER</span><span class="p">:</span> <span class="s1">&#39;No user &quot;jboss&quot; found&#39;</span><span class="p">,</span>
+                <span class="n">JBOSS_EAP_JBOSS_USER</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_JBOSS_USER</span><span class="p">:</span>
+            <span class="s1">&#39;Error: unexpected output from &quot;id -u jboss&quot;: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">output</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_COMMON_FILES</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.common-files&#39;</span>
+
+
+<div class="viewcode-block" id="process_jboss_eap_common_files"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_common_files">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_common_files</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of &#39;test -e &lt;dir&gt;&#39;, for common install paths.</span>
+
+<span class="sd">    :returns: a dict of key, value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss.eap.common-files&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss_eap_common_files&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;common file and directory tests&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">items</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]</span>
+
+    <span class="n">out_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="s1">&#39;rc&#39;</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">and</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">directory</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+
+        <span class="c1"># If &#39;rc&#39; is in item but is nonzero, the directory wasn&#39;t</span>
+        <span class="c1"># present. If &#39;rc&#39; isn&#39;t in item, there was an error and the</span>
+        <span class="c1"># test wasn&#39;t run. Unfortunately, we don&#39;t have the ability to</span>
+        <span class="c1"># get logs out of spit_results, so we&#39;ll have to hope the</span>
+        <span class="c1"># scan_log is enough to debug any problems we have. :(</span>
+
+    <span class="n">out_dirs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">out_list</span><span class="p">:</span>
+        <span class="n">out_dir</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+        <span class="n">out_dirs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out_dir</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_COMMON_FILES</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="n">out_dirs</span><span class="p">),</span>
+            <span class="n">JBOSS_EAP_COMMON_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">out_list</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_PROCESSES</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.processes&#39;</span>
+
+
+<div class="viewcode-block" id="process_jboss_eap_processes"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_processes">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_processes</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of &#39;ps -A -f e | grep eap&#39;</span>
+
+<span class="sd">    :returns: a dict of key, value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Why use &#39;ps -A -f e | grep eap&#39;? The -A gets us every process on</span>
+    <span class="c1"># the system, and -f means ps will print the command-line</span>
+    <span class="c1"># arguments, which is key because JBoss will be invoked with java</span>
+    <span class="c1"># as the executable and an argument that says to run the Wildfly</span>
+    <span class="c1"># jar.</span>
+
+    <span class="c1"># The e makes ps print the process&#39;s environment. It&#39;s in a format</span>
+    <span class="c1"># that is not machine-readable, because ps uses spaces as the</span>
+    <span class="c1"># delimiter for both command-line args and the process</span>
+    <span class="c1"># environment, and we have no way to tell where the arguments end</span>
+    <span class="c1"># and the environment begins. However, that&#39;s fine for grepping. I</span>
+    <span class="c1"># observed an EAP 7 application server running with MANPATH,</span>
+    <span class="c1"># JBOSS_MODULEPATH, JBOSS_HOME, WILDFLY_CONSOLE_LOG, WILDFLY_SH,</span>
+    <span class="c1"># LD_LIBRARY_PATH, EAP7_SCLS_ENABLED, PATH, WILDFLY_MODULEPATH,</span>
+    <span class="c1"># HOME, and PKG_CONFIG_PATH set to directories that included</span>
+    <span class="c1"># /opt/rh/eap7, all of which will be caught by our</span>
+    <span class="c1"># grep. Additionally, variables LAUNCH_JBOSS_IN_BACKGROUND and</span>
+    <span class="c1"># JBOSS_HOME will be caught because of the variable names</span>
+    <span class="c1"># themselves. We deliberately don&#39;t grep for wildfly or jboss,</span>
+    <span class="c1"># because that could catch non-JBoss Wildfly installations.</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_PROCESSES</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_PROCESSES</span><span class="p">,</span>
+                                     <span class="s1">&#39;ps -A -f e | grep eap&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="c1"># pgrep exists with status 0 if it finds processes matching its</span>
+    <span class="c1"># pattern, and status 1 if not.</span>
+    <span class="k">if</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_PROCESSES</span><span class="p">:</span> <span class="s1">&#39;No EAP processes found&#39;</span><span class="p">,</span>
+                <span class="n">JBOSS_EAP_PROCESSES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+    <span class="n">num_procs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span>
+
+    <span class="c1"># There should always be two processes matching &#39;eap&#39;, one for the</span>
+    <span class="c1"># grep that&#39;s searching for &#39;eap&#39;, and one for the bash that&#39;s</span>
+    <span class="c1"># running the pipeline.</span>
+    <span class="k">if</span> <span class="n">num_procs</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">JBOSS_EAP_PROCESSES</span><span class="p">:</span>
+            <span class="s2">&quot;Bad result (</span><span class="si">{0}</span><span class="s2"> processes) from &#39;ps -A -f e | grep eap&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">num_procs</span><span class="p">)}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_PROCESSES</span><span class="p">:</span>
+            <span class="sa">u</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> EAP processes found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_procs</span> <span class="o">-</span> <span class="mi">2</span><span class="p">),</span>
+            <span class="n">JBOSS_EAP_PROCESSES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">num_procs</span> <span class="o">-</span> <span class="mi">2</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_PACKAGES</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.packages&#39;</span>
+
+
+<div class="viewcode-block" id="process_jboss_eap_packages"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_packages">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_packages</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the list of JBoss EAP-related RPMs.</span>
+
+<span class="sd">    :returns: a dict of key, value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># We use (eap7)|(jbossas) as the pattern because all of the EAP 6</span>
+    <span class="c1"># packages had the prefix jbossas- and all of the EAP 7 packages</span>
+    <span class="c1"># have the prefix eap7-. We set a custom format for rpm output and</span>
+    <span class="c1"># get a lot of package fields, even though we only use the number</span>
+    <span class="c1"># of output lines, so we will have full package data in the logs</span>
+    <span class="c1"># if customers have questions about the number. Hopefully in the</span>
+    <span class="c1"># future we can surface that data through a UI.</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_PACKAGES</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_PACKAGES</span><span class="p">,</span>
+                                     <span class="s2">&quot;rpm -q -a | grep -E &#39;(eap7)|(jbossas)&#39;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="c1"># the sort on the end of the pipeline returns 0 whether or not</span>
+    <span class="c1"># matches were found, so a nonzero return code should never</span>
+    <span class="c1"># happen.</span>
+    <span class="k">if</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_PACKAGES</span><span class="p">:</span> <span class="s1">&#39;Pipeline returned non-zero status&#39;</span><span class="p">}</span>
+
+    <span class="n">num_packages</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_PACKAGES</span><span class="p">:</span>
+            <span class="sa">u</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> JBoss-related packages found&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_packages</span><span class="p">),</span>
+            <span class="n">JBOSS_EAP_PACKAGES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">num_packages</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.locate-jboss-modules-jar&#39;</span>
+
+
+<div class="viewcode-block" id="process_jboss_eap_locate"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_locate">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_locate</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the results of &#39;locate jboss-modules.jar&#39;.</span>
+
+<span class="sd">    :returns: a dict of key, value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;have_locate&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span><span class="p">:</span>
+                <span class="s1">&#39;N/A (locate not found)&#39;</span><span class="p">}</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">output</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span><span class="p">,</span>
+                                     <span class="s1">&#39;jboss_eap_locate_jboss_modules_jar&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;locate jboss-modules.jar&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span><span class="p">:</span>
+                <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="n">output</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">,</span> <span class="p">[])),</span>
+                <span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span>
+                <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]}</span>
+
+    <span class="k">if</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span><span class="p">:</span>
+                <span class="s1">&#39;jboss-modules.jar not found&#39;</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span><span class="p">:</span>
+            <span class="s2">&quot;Error code </span><span class="si">{0}</span><span class="s2"> running &#39;locate jboss-modules.jar&#39;: </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">output</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">],</span> <span class="n">output</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">])}</span></div>
+
+
+<span class="n">JBOSS_EAP_INIT_FILES</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.init-files&#39;</span>
+
+
+<div class="viewcode-block" id="process_jboss_eap_init_files"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_init_files">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_init_files</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Look for jboss and EAP in init system output.</span>
+
+<span class="sd">    :returns: a dict of key, value pairs to add to the output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># The init system changed between RHEL 6 and RHEL 7. &#39;chkconfig&#39;</span>
+    <span class="c1"># should work on RHEL 6, and &#39;systemctl list-unit-files&#39; should</span>
+    <span class="c1"># work on RHEL 7.</span>
+    <span class="n">err</span><span class="p">,</span> <span class="n">chkconfig</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                        <span class="n">JBOSS_EAP_INIT_FILES</span><span class="p">,</span>
+                                        <span class="s1">&#39;jboss_eap_chkconfig&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;chkconfig&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">systemctl</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                        <span class="n">JBOSS_EAP_INIT_FILES</span><span class="p">,</span>
+                                        <span class="s1">&#39;jboss_eap_systemctl_unit_files&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;systemctl list-unit-files&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">if</span> <span class="n">chkconfig</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">systemctl</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_INIT_FILES</span><span class="p">:</span>
+                <span class="s1">&#39;Error: all init system checks failed.&#39;</span><span class="p">}</span>
+
+    <span class="c1"># On a RHEL 6 system, chkconfig will return a list of available</span>
+    <span class="c1"># services and systemctl will error. On a RHEL 7 system, systemctl</span>
+    <span class="c1"># will return a list of system services and chkconfig will return</span>
+    <span class="c1"># a shorter list of services and a warning message to go look at</span>
+    <span class="c1"># systemctl. However, users may well choose to run JBoss under the</span>
+    <span class="c1"># old init system on RHEL 7 due to familiarity or lack of need to</span>
+    <span class="c1"># change, so we look in all available output.</span>
+
+    <span class="k">def</span> <span class="nf">find_services</span><span class="p">(</span><span class="n">lines</span><span class="p">,</span> <span class="n">method</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Find system services matching &#39;jboss&#39; or &#39;eap&#39;</span>
+
+<span class="sd">        :returns: a list of the services, as strings, with the method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">service</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;jboss&#39;</span> <span class="ow">in</span> <span class="n">service</span> <span class="ow">or</span> <span class="s1">&#39;eap&#39;</span> <span class="ow">in</span> <span class="n">service</span><span class="p">:</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1"> (</span><span class="si">{1}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">service</span><span class="p">,</span> <span class="n">method</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">output</span>
+
+    <span class="n">found_services</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">chkconfig</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+        <span class="n">found_services</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">find_services</span><span class="p">(</span><span class="n">chkconfig</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">],</span>
+                                            <span class="s1">&#39;chkconfig&#39;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">systemctl</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+        <span class="n">found_services</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">find_services</span><span class="p">(</span><span class="n">systemctl</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">],</span>
+                                            <span class="s1">&#39;systemctl&#39;</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">found_services</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_INIT_FILES</span><span class="p">:</span>
+                <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">found_services</span><span class="p">),</span>
+                <span class="n">JBOSS_EAP_INIT_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span>
+                <span class="n">found_services</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_INIT_FILES</span><span class="p">:</span>
+            <span class="s2">&quot;No services found matching &#39;jboss&#39; or &#39;eap&#39;.&quot;</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_EAP_HOME</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.eap-home&#39;</span>
+<span class="c1"># Files that live in an EAP_HOME directory.</span>
+<span class="n">JBOSS_EAP_INDICATOR_FILES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;appclient&#39;</span><span class="p">,</span> <span class="s1">&#39;standalone&#39;</span><span class="p">,</span> <span class="s1">&#39;JBossEULA.txt&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;modules&#39;</span><span class="p">,</span> <span class="s1">&#39;jboss-modules.jar&#39;</span><span class="p">,</span> <span class="s1">&#39;version.txt&#39;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="process_indicator_files"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_indicator_files">[docs]</a><span class="k">def</span> <span class="nf">process_indicator_files</span><span class="p">(</span><span class="n">indicator_files</span><span class="p">,</span> <span class="n">ls_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of a with_items ls from Ansible.&quot;&quot;&quot;</span>
+
+    <span class="n">ls_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">ls_results_mr</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">ls_out</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+            <span class="n">ls_results</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Error in &#39;ls&#39;&quot;</span>
+            <span class="n">ls_results_mr</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">continue</span>
+
+        <span class="n">files</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]</span>
+        <span class="n">found_in_dir</span> <span class="o">=</span> <span class="p">[</span><span class="n">filename</span> <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">indicator_files</span>
+                        <span class="k">if</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">found_in_dir</span><span class="p">:</span>
+            <span class="n">ls_results</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">directory</span> <span class="o">+</span> <span class="s1">&#39; contains &#39;</span> <span class="o">+</span> <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">found_in_dir</span><span class="p">))</span>
+            <span class="n">ls_results_mr</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="n">found_in_dir</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ls_results</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;No indicator files found&#39;</span>
+            <span class="n">ls_results_mr</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">return</span> <span class="n">ls_results</span><span class="p">,</span> <span class="n">ls_results_mr</span></div>
+
+
+<div class="viewcode-block" id="process_cat_results"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_cat_results">[docs]</a><span class="k">def</span> <span class="nf">process_cat_results</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">cat_out</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of a with_items cat from Ansible.&quot;&quot;&quot;</span>
+
+    <span class="n">cat_results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">cat_results_mr</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">cat_out</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]:</span>
+        <span class="n">directory</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+            <span class="n">cat_results</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Error in &#39;cat </span><span class="si">{0}</span><span class="s2">&#39;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+            <span class="n">cat_results_mr</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">file_contents</span> <span class="o">=</span> <span class="n">item</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">cat_results</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_contents</span>
+            <span class="n">cat_results_mr</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Red Hat&#39;</span> <span class="ow">in</span> <span class="n">file_contents</span>
+
+    <span class="k">return</span> <span class="n">cat_results</span><span class="p">,</span> <span class="n">cat_results_mr</span></div>
+
+
+<div class="viewcode-block" id="process_jboss_eap_home"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_jboss_eap_home">[docs]</a><span class="k">def</span> <span class="nf">process_jboss_eap_home</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find the EAP_HOME directory of a JBoss installation, if possible.&quot;&quot;&quot;</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">ls_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="n">JBOSS_EAP_EAP_HOME</span><span class="p">,</span>
+                                     <span class="s1">&#39;eap_home_candidates_ls&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;ls -1 EAP_HOME candidate directories&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">cat_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                      <span class="n">JBOSS_EAP_EAP_HOME</span><span class="p">,</span>
+                                      <span class="s1">&#39;eap_home_candidates_version_txt&#39;</span><span class="p">,</span>
+                                      <span class="s1">&#39;cat EAP_HOME/version.txt for candidate &#39;</span>
+                                      <span class="s1">&#39;EAP_HOMEs&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">ls_results</span><span class="p">,</span> <span class="n">ls_results_mr</span> <span class="o">=</span> <span class="n">process_indicator_files</span><span class="p">(</span>
+        <span class="n">JBOSS_EAP_INDICATOR_FILES</span><span class="p">,</span> <span class="n">ls_out</span><span class="p">)</span>
+    <span class="n">cat_results</span><span class="p">,</span> <span class="n">cat_results_mr</span> <span class="o">=</span> <span class="n">process_cat_results</span><span class="p">(</span><span class="s1">&#39;version.txt&#39;</span><span class="p">,</span> <span class="n">cat_out</span><span class="p">)</span>
+
+    <span class="n">eap_homes</span> <span class="o">=</span> <span class="n">ls_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">eap_homes</span> <span class="o">==</span> <span class="n">cat_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="c1"># The MR results are a list of all of the directories that are</span>
+    <span class="c1"># likely EAP_HOME directories.</span>
+    <span class="n">results_mr</span> <span class="o">=</span> <span class="p">[</span><span class="n">directory</span>
+                  <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">eap_homes</span>
+                  <span class="k">if</span> <span class="n">ls_results_mr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span> <span class="ow">or</span>
+                  <span class="n">cat_results_mr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">directory</span><span class="p">)]</span>
+
+    <span class="n">eap_home_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="n">directory</span> <span class="o">+</span>
+                     <span class="s1">&#39;: &#39;</span> <span class="o">+</span> <span class="n">ls_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span>
+                     <span class="s1">&#39;, &#39;</span> <span class="o">+</span> <span class="n">cat_results</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                     <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">eap_homes</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_EAP_HOME</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">eap_home_dirs</span><span class="p">),</span>
+            <span class="n">JBOSS_EAP_EAP_HOME</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">results_mr</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_SUMMARY</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.summary&#39;</span>
+
+
+<div class="viewcode-block" id="generate_eap_summary"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.generate_eap_summary">[docs]</a><span class="k">def</span> <span class="nf">generate_eap_summary</span><span class="p">(</span><span class="n">facts_to_collect</span><span class="p">,</span> <span class="n">facts</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a single summary fact about whether the machine has EAP.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">JBOSS_EAP_SUMMARY</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">facts_to_collect</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">JBOSS_EAP_SUMMARY</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">facts_to_collect</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">installed_versions</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_INSTALLED_VERSIONS</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">deploy_dates</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_DEPLOY_DATES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">running_paths</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_RUNNING_PATHS</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">jboss_user</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_JBOSS_USER</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">common_files</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_COMMON_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">eap_processes</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_PROCESSES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">packages</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_PACKAGES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">modules_jar</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_LOCATE_JBOSS_MODULES_JAR</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">init_files</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_INIT_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">eap_home</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_EAP_EAP_HOME</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+
+    <span class="c1"># pylint: disable=too-many-boolean-expressions</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">installed_versions</span> <span class="ow">or</span>
+            <span class="n">deploy_dates</span> <span class="ow">or</span>
+            <span class="n">running_paths</span> <span class="ow">or</span>
+            <span class="n">packages</span> <span class="ow">or</span>
+            <span class="n">modules_jar</span> <span class="ow">or</span>
+            <span class="n">eap_home</span><span class="p">):</span>  <span class="c1"># noqa (indent)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_SUMMARY</span><span class="p">:</span> <span class="s1">&#39;Yes, EAP installation present&#39;</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">jboss_user</span> <span class="ow">or</span>
+            <span class="n">common_files</span> <span class="ow">or</span>
+            <span class="n">eap_processes</span> <span class="ow">or</span>
+            <span class="n">init_files</span><span class="p">):</span>  <span class="c1"># noqa (indent)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_SUMMARY</span><span class="p">:</span>
+                <span class="s1">&#39;Maybe - an EAP installation may be present&#39;</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_SUMMARY</span><span class="p">:</span> <span class="s1">&#39;No EAP installation detected&#39;</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_EAP_FIND_JBOSS_MODULES_JAR</span> <span class="o">=</span> <span class="s1">&#39;jboss.eap.find-jboss-modules-jar&#39;</span>
+
+
+<div class="viewcode-block" id="process_find_jboss_modules_jar"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_find_jboss_modules_jar">[docs]</a><span class="k">def</span> <span class="nf">process_find_jboss_modules_jar</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of &#39;find jboss-modules.jar&#39;&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">JBOSS_EAP_FIND_JBOSS_MODULES_JAR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                  <span class="n">JBOSS_EAP_FIND_JBOSS_MODULES_JAR</span><span class="p">,</span>
+                                  <span class="s1">&#39;jboss_eap_find_jboss_modules_jar&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;find jboss-modules.jar&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_EAP_FIND_JBOSS_MODULES_JAR</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])}</span></div>
+
+
+<span class="n">FIND_KARAF_JAR</span> <span class="o">=</span> <span class="s1">&#39;jboss.fuse-on-karaf.find-karaf-jar&#39;</span>
+
+
+<div class="viewcode-block" id="process_find_karaf_jar"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_find_karaf_jar">[docs]</a><span class="k">def</span> <span class="nf">process_find_karaf_jar</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of &#39;find karaf.jar&#39;&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">FIND_KARAF_JAR</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                  <span class="n">FIND_KARAF_JAR</span><span class="p">,</span>
+                                  <span class="s1">&#39;karaf_find_karaf_jar&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;find karaf.jar&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">FIND_KARAF_JAR</span><span class="p">:</span> <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])}</span></div>
+
+
+<span class="n">JBOSS_FUSE_FUSE_ON_EAP</span> <span class="o">=</span> <span class="s1">&#39;jboss.fuse.fuse-on-eap&#39;</span>
+<span class="n">JBOSS_FUSE_BIN_INDICATOR_FILES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fuseconfig.sh&#39;</span><span class="p">,</span> <span class="s1">&#39;fusepatch.sh&#39;</span><span class="p">]</span>
+
+
+<span class="c1"># pylint: disable=too-many-locals</span>
+<div class="viewcode-block" id="process_fuse_on_eap"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_fuse_on_eap">[docs]</a><span class="k">def</span> <span class="nf">process_fuse_on_eap</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Find JBoss Fuse when it is layered on top of JBoss EAP.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">JBOSS_FUSE_FUSE_ON_EAP</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">ls_bin</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                     <span class="n">JBOSS_FUSE_FUSE_ON_EAP</span><span class="p">,</span>
+                                     <span class="s1">&#39;eap_home_candidates_bin&#39;</span><span class="p">,</span>
+                                     <span class="s1">&#39;ls $EAP_HOME/bin&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">layers_conf</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                          <span class="n">JBOSS_FUSE_FUSE_ON_EAP</span><span class="p">,</span>
+                                          <span class="s1">&#39;eap_home_candidates_layers_conf&#39;</span><span class="p">,</span>
+                                          <span class="s1">&#39;cat $EAP_HOME/modules/layers.conf&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">ls_layers</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                        <span class="n">JBOSS_FUSE_FUSE_ON_EAP</span><span class="p">,</span>
+                                        <span class="s1">&#39;eap_home_candidates_layers&#39;</span><span class="p">,</span>
+                                        <span class="s1">&#39;ls $EAP_HOME/modules/system/layers&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">ls_bin_results</span><span class="p">,</span> <span class="n">ls_bin_mr</span> <span class="o">=</span> <span class="n">process_indicator_files</span><span class="p">(</span>
+        <span class="n">JBOSS_FUSE_BIN_INDICATOR_FILES</span><span class="p">,</span> <span class="n">ls_bin</span><span class="p">)</span>
+    <span class="n">layers_conf_results</span><span class="p">,</span> <span class="n">layers_conf_mr</span> <span class="o">=</span> <span class="n">process_cat_results</span><span class="p">(</span><span class="s1">&#39;layers.conf&#39;</span><span class="p">,</span>
+                                                              <span class="n">layers_conf</span><span class="p">)</span>
+    <span class="n">ls_layers_results</span><span class="p">,</span> <span class="n">ls_layers_mr</span> <span class="o">=</span> <span class="n">process_indicator_files</span><span class="p">([</span><span class="s1">&#39;fuse&#39;</span><span class="p">],</span>
+                                                              <span class="n">ls_layers</span><span class="p">)</span>
+
+    <span class="n">eap_homes</span> <span class="o">=</span> <span class="n">ls_bin_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="n">eap_homes</span> <span class="o">==</span> <span class="n">layers_conf_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">==</span> <span class="n">ls_layers_results</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+    <span class="n">fuse_on_eap_dirs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="sa">u</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">: /bin=</span><span class="si">{1}</span><span class="s1">, /modules/layers.conf=</span><span class="si">{2}</span><span class="s1">,&#39;</span>
+         <span class="s1">&#39; /modules/system/layers=</span><span class="si">{3}</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+             <span class="n">eap_home</span><span class="p">,</span>
+             <span class="n">ls_bin_results</span><span class="p">[</span><span class="n">eap_home</span><span class="p">],</span>
+             <span class="n">layers_conf_results</span><span class="p">[</span><span class="n">eap_home</span><span class="p">],</span>
+             <span class="n">ls_layers_results</span><span class="p">[</span><span class="n">eap_home</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">eap_home</span> <span class="ow">in</span> <span class="n">eap_homes</span><span class="p">]</span>
+
+    <span class="n">eap_home_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">eap_home</span><span class="p">,</span>
+                          <span class="p">(</span><span class="n">ls_bin_mr</span><span class="p">[</span><span class="n">eap_home</span><span class="p">]</span> <span class="ow">or</span>
+                           <span class="n">layers_conf_mr</span><span class="p">[</span><span class="n">eap_home</span><span class="p">]</span> <span class="ow">or</span>
+                           <span class="n">ls_layers_mr</span><span class="p">[</span><span class="n">eap_home</span><span class="p">]))</span>
+                         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">eap_home</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eap_homes</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_FUSE_ON_EAP</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">fuse_on_eap_dirs</span><span class="p">),</span>
+            <span class="n">JBOSS_FUSE_FUSE_ON_EAP</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">eap_home_dict</span><span class="p">}</span></div>
+
+
+<span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span> <span class="o">=</span> <span class="s1">&#39;jboss.fuse-on-karaf.karaf-home&#39;</span>
+
+
+<div class="viewcode-block" id="process_karaf_home"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_karaf_home">[docs]</a><span class="k">def</span> <span class="nf">process_karaf_home</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process karaf_home indicators to detect Fuse-on-Karaf.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span> <span class="ow">and</span>
+            <span class="n">JBOSS_FUSE_SUMMARY</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fact_names</span><span class="p">):</span>  <span class="c1"># noqa</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="s1">&#39;karaf_homes&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">host_vars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span><span class="p">:</span>
+                <span class="s1">&#39;Error: fact karaf_homes not collected.&#39;</span><span class="p">}</span>
+    <span class="n">karaf_homes</span> <span class="o">=</span> <span class="n">host_vars</span><span class="p">[</span><span class="s1">&#39;karaf_homes&#39;</span><span class="p">]</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">bin_fuse</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                       <span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span><span class="p">,</span>
+                                       <span class="s1">&#39;karaf_home_bin_fuse&#39;</span><span class="p">,</span>
+                                       <span class="s1">&#39;ls -1 KARAF_HOME/bin/fuse&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">system_org_jboss</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span>
+        <span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+        <span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span><span class="p">,</span>
+        <span class="s1">&#39;karaf_home_system_org_jboss&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ls -1 KARAF_HOME/system/org/jboss&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">system_org_jboss_results</span><span class="p">,</span> <span class="n">system_org_jboss_mr</span> <span class="o">=</span> <span class="n">process_indicator_files</span><span class="p">(</span>
+        <span class="p">[</span><span class="s1">&#39;fuse&#39;</span><span class="p">],</span> <span class="n">system_org_jboss</span><span class="p">)</span>
+
+    <span class="n">bin_fuse_mr</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">],</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
+                       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bin_fuse</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]))</span>
+
+    <span class="n">bin_fuse_results</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">directory</span><span class="p">,</span>
+                             <span class="s1">&#39;/bin/fuse exists&#39;</span> <span class="k">if</span> <span class="n">result</span>
+                             <span class="k">else</span> <span class="s1">&#39;/bin/fuse not found&#39;</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">directory</span><span class="p">,</span> <span class="n">result</span>
+                            <span class="ow">in</span> <span class="n">utilities</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">bin_fuse_mr</span><span class="p">))</span>
+
+    <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">system_org_jboss_results</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="n">karaf_homes</span>
+    <span class="k">assert</span> <span class="nb">list</span><span class="p">(</span><span class="n">bin_fuse_results</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="n">karaf_homes</span>
+
+    <span class="n">fuse_on_karaf_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="sa">u</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">: </span><span class="si">{1}</span><span class="s1">; </span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">karaf_home</span><span class="p">,</span>
+        <span class="n">bin_fuse_results</span><span class="p">[</span><span class="n">karaf_home</span><span class="p">],</span>
+        <span class="n">system_org_jboss_results</span><span class="p">[</span><span class="n">karaf_home</span><span class="p">])</span>
+                          <span class="k">for</span> <span class="n">karaf_home</span> <span class="ow">in</span> <span class="n">karaf_homes</span><span class="p">]</span>  <span class="c1"># noqa E126</span>
+    <span class="n">karaf_home_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">karaf_home</span><span class="p">,</span> <span class="p">(</span><span class="n">system_org_jboss_mr</span><span class="p">[</span><span class="n">karaf_home</span><span class="p">]</span> <span class="ow">or</span>
+                                         <span class="n">bin_fuse_mr</span><span class="p">[</span><span class="n">karaf_home</span><span class="p">]))</span>
+                           <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">karaf_home</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">karaf_homes</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">fuse_on_karaf_dirs</span><span class="p">),</span>
+            <span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span> <span class="n">karaf_home_dict</span><span class="p">}</span>  <span class="c1"># noqa</span></div>
+
+
+<span class="n">JBOSS_FUSE_INIT_FILES</span> <span class="o">=</span> <span class="s1">&#39;jboss.fuse.init-files&#39;</span>
+
+
+<div class="viewcode-block" id="process_fuse_init_files"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_fuse_init_files">[docs]</a><span class="k">def</span> <span class="nf">process_fuse_init_files</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process facts for jboss.fuse.init-files</span>
+
+<span class="sd">    Note: these facts are included because they can be useful, but the</span>
+<span class="sd">    filters are very susceptible to letting through lines which a</span>
+<span class="sd">    human could easily tell are false positives, but we don&#39;t handle</span>
+<span class="sd">    that automatically.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">systemctl_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span>
+        <span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+        <span class="n">JBOSS_FUSE_INIT_FILES</span><span class="p">,</span>
+        <span class="s1">&#39;jboss_fuse_systemctl_unit_files&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;systemctl list-unit-files | grep fuse&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">chkconfig_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+                                            <span class="n">JBOSS_FUSE_INIT_FILES</span><span class="p">,</span>
+                                            <span class="s1">&#39;jboss_fuse_chkconfig&#39;</span><span class="p">,</span>
+                                            <span class="s1">&#39;chkconfig | grep fuse&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_INIT_FILES</span><span class="p">:</span>
+            <span class="s1">&#39;systemctl: </span><span class="si">{0}</span><span class="s1">; chkconfig: </span><span class="si">{1}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">systemctl_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]),</span>
+                <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">chkconfig_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])),</span>
+            <span class="n">JBOSS_FUSE_INIT_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">:</span>
+            <span class="nb">bool</span><span class="p">(</span><span class="n">systemctl_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span> <span class="ow">or</span>
+            <span class="nb">bool</span><span class="p">(</span><span class="n">chkconfig_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])}</span></div>
+
+
+<div class="viewcode-block" id="classify_kie_file"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.classify_kie_file">[docs]</a><span class="k">def</span> <span class="nf">classify_kie_file</span><span class="p">(</span><span class="n">pathname</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Classify a kie-api-* file.</span>
+
+<span class="sd">    :param pathname: the path to the file</span>
+<span class="sd">    :returns: a BRMS version string, or None if not a Red Hat kie file.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># os.path.basename behaves differently if the last part of the</span>
+    <span class="c1"># path ends in a /, so normalize.</span>
+    <span class="k">if</span> <span class="n">pathname</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">):</span>
+        <span class="n">pathname</span> <span class="o">=</span> <span class="n">pathname</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">basename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+
+    <span class="n">version_string</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">strip_suffix</span><span class="p">(</span>
+        <span class="n">utilities</span><span class="o">.</span><span class="n">strip_prefix</span><span class="p">(</span><span class="n">basename</span><span class="p">,</span> <span class="s1">&#39;kie-api-&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;.jar&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">version_string</span> <span class="ow">in</span> <span class="n">BRMS_CLASSIFICATIONS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">BRMS_CLASSIFICATIONS</span><span class="p">[</span><span class="n">version_string</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="s1">&#39;redhat&#39;</span> <span class="ow">in</span> <span class="n">version_string</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">version_string</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+<span class="n">JBOSS_BRMS</span> <span class="o">=</span> <span class="s1">&#39;jboss.brms&#39;</span>
+<span class="n">UNKNOWN_BASE</span> <span class="o">=</span> <span class="s1">&#39;unknown base directory&#39;</span>
+<span class="n">JBOSS_BRMS_SUMMARY</span> <span class="o">=</span> <span class="s1">&#39;jboss.brms.summary&#39;</span>
+
+
+<span class="c1"># pylint: disable=too-many-locals, too-many-branches</span>
+<div class="viewcode-block" id="process_brms_output"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.process_brms_output">[docs]</a><span class="k">def</span> <span class="nf">process_brms_output</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process facts for jboss.brms.&quot;&quot;&quot;</span>
+
+    <span class="n">business_central_candidates</span> <span class="o">=</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s1">&#39;business_central_candidates&#39;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">kie_server_candidates</span> <span class="o">=</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s1">&#39;kie_server_candidates&#39;</span><span class="p">,</span> <span class="p">[])</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">manifest_mf_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span>
+        <span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+        <span class="n">JBOSS_BRMS</span><span class="p">,</span>
+        <span class="s1">&#39;jboss_brms_manifest_mf&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;cat {{ base_directory }}/META-INF/MANIFEST.MF&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">kie_in_business_central_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span>
+        <span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+        <span class="n">JBOSS_BRMS</span><span class="p">,</span>
+        <span class="s1">&#39;jboss_brms_kie_in_business_central&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ls -1 {{ base_directory }}/WEB-INF/lib/kie-api*&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">err</span><span class="p">,</span> <span class="n">locate_kie_api_out</span> <span class="o">=</span> <span class="n">raw_output_present</span><span class="p">(</span>
+        <span class="n">fact_names</span><span class="p">,</span> <span class="n">host_vars</span><span class="p">,</span>
+        <span class="n">JBOSS_BRMS</span><span class="p">,</span>
+        <span class="s1">&#39;jboss_brms_locate_kie_api&#39;</span><span class="p">,</span>
+        <span class="s2">&quot;locate --basename &#39;kie-api*&#39;&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">err</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">err</span>
+
+    <span class="n">base_directories</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">business_central_candidates</span> <span class="o">+</span> <span class="n">kie_server_candidates</span><span class="p">)</span>
+
+    <span class="c1"># manifest_mfs maps directory name to MANIFEST.MF contents</span>
+    <span class="n">manifest_mfs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">manifest_mf_out</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]:</span>
+        <span class="n">manifest_mfs</span><span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;item&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;stdout&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">manifest_mfs</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span> <span class="o">!=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">base_directories</span><span class="p">)):</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Bad manifest keys: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                  <span class="n">manifest_mfs</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">base_directories</span><span class="p">)</span>
+
+    <span class="c1"># Dud entry here matches the UNKNOWN_BASE member of</span>
+    <span class="c1"># kie_versions_by_directory, which is where we keep kie-api files</span>
+    <span class="c1"># that aren&#39;t in a base directory we recognize.</span>
+    <span class="n">manifest_mfs</span><span class="p">[</span><span class="n">UNKNOWN_BASE</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">kie_files</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">locate_kie_api_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">])</span>
+
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">kie_in_business_central_out</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;rc&#39;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]:</span>
+            <span class="n">kie_files</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">find_kie_api_out</span> <span class="o">=</span> <span class="n">host_vars</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;jboss.brms.kie-api-ver&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">find_kie_api_out</span> <span class="ow">and</span> <span class="s1">&#39;stdout_lines&#39;</span> <span class="ow">in</span> <span class="n">find_kie_api_out</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">find_kie_api_out</span><span class="p">[</span><span class="s1">&#39;stdout_lines&#39;</span><span class="p">]:</span>
+            <span class="n">kie_files</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="c1"># These loops could be implemented as a single pass through both</span>
+    <span class="c1"># lists if we pre-sorted them. Waiting to see if anyone cares</span>
+    <span class="c1"># about the performance of this code before optimizing.</span>
+    <span class="n">kie_versions_by_directory</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">base_directories</span><span class="p">:</span>
+        <span class="n">versions_in_dir</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kie_files</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
+                <span class="n">kie_files</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+                <span class="n">category</span> <span class="o">=</span> <span class="n">classify_kie_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">category</span><span class="p">:</span>
+                    <span class="n">versions_in_dir</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+                <span class="c1"># Deliberately drop files if their category is falsey,</span>
+                <span class="c1"># because it means that they are not Red Hat files.</span>
+        <span class="n">kie_versions_by_directory</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="o">=</span> <span class="n">versions_in_dir</span>
+    <span class="n">versions_in_dir</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">kie_files</span><span class="p">):</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="n">classify_kie_file</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">category</span><span class="p">:</span>
+            <span class="n">versions_in_dir</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+    <span class="n">kie_versions_by_directory</span><span class="p">[</span><span class="n">UNKNOWN_BASE</span><span class="p">]</span> <span class="o">=</span> <span class="n">versions_in_dir</span>
+
+    <span class="k">def</span> <span class="nf">format_directory_result</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">manifest</span><span class="p">,</span> <span class="n">kie_versions</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Format output for a single directory.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">(</span><span class="n">directory</span> <span class="o">+</span>
+                <span class="s1">&#39;: &#39;</span> <span class="o">+</span>
+                <span class="p">(</span><span class="s1">&#39;Red Hat manifest &#39;</span> <span class="k">if</span> <span class="s1">&#39;Red Hat&#39;</span> <span class="ow">in</span> <span class="n">manifest</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">+</span>
+                <span class="s1">&#39;kie-api versions &#39;</span> <span class="o">+</span>
+                <span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">kie_versions</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>  <span class="c1"># noqa</span>
+
+    <span class="n">directories_for_output</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">directory</span>
+        <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">base_directories</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;Red Hat&#39;</span> <span class="ow">in</span> <span class="n">manifest_mfs</span><span class="p">[</span><span class="n">directory</span><span class="p">]</span> <span class="ow">or</span>
+            <span class="n">kie_versions_by_directory</span><span class="p">[</span><span class="n">directory</span><span class="p">])]</span>
+    <span class="k">if</span> <span class="n">kie_versions_by_directory</span><span class="p">[</span><span class="n">UNKNOWN_BASE</span><span class="p">]:</span>
+        <span class="n">directories_for_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">UNKNOWN_BASE</span><span class="p">)</span>
+
+    <span class="n">found_redhat_brms</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">any</span><span class="p">((</span><span class="s1">&#39;Red Hat&#39;</span> <span class="ow">in</span> <span class="n">manifest</span>
+             <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">manifest</span> <span class="ow">in</span> <span class="n">utilities</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">manifest_mfs</span><span class="p">)))</span> <span class="ow">or</span>
+        <span class="nb">any</span><span class="p">((</span><span class="n">version</span>
+             <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">version</span>
+             <span class="ow">in</span> <span class="n">utilities</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kie_versions_by_directory</span><span class="p">))))</span>
+
+    <span class="n">jboss_vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">format_directory_result</span><span class="p">(</span>
+        <span class="n">directory</span><span class="p">,</span>
+        <span class="n">manifest_mfs</span><span class="p">[</span><span class="n">directory</span><span class="p">],</span>
+        <span class="n">kie_versions_by_directory</span><span class="p">[</span><span class="n">directory</span><span class="p">])</span>
+                  <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">directories_for_output</span><span class="p">]</span>  <span class="c1"># noqa E126</span>
+    <span class="n">jboss_vals</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">kie_files</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_BRMS</span><span class="p">:</span>
+            <span class="n">encode_and_join</span><span class="p">(</span><span class="s1">&#39;; &#39;</span><span class="p">,</span> <span class="n">jboss_vals</span><span class="p">),</span>
+            <span class="n">JBOSS_BRMS_SUMMARY</span><span class="p">:</span>
+            <span class="p">(</span><span class="s1">&#39;Yes - BRMS installation present&#39;</span>
+             <span class="k">if</span> <span class="n">found_redhat_brms</span> <span class="k">else</span> <span class="s1">&#39;No BRMS installation detected&#39;</span><span class="p">)}</span></div>
+
+
+<span class="n">JBOSS_FUSE_SUMMARY</span> <span class="o">=</span> <span class="s1">&#39;jboss.fuse.summary&#39;</span>
+
+
+<div class="viewcode-block" id="generate_fuse_summary"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.generate_fuse_summary">[docs]</a><span class="k">def</span> <span class="nf">generate_fuse_summary</span><span class="p">(</span><span class="n">facts_to_collect</span><span class="p">,</span> <span class="n">facts</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a single summary fact about whether the machine has Fuse.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">JBOSS_FUSE_SUMMARY</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">facts_to_collect</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+
+    <span class="n">fuse_on_eap</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_FUSE_FUSE_ON_EAP</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">fuse_on_karaf</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_FUSE_ON_KARAF_KARAF_HOME</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+    <span class="n">fuse_init_files</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">JBOSS_FUSE_INIT_FILES</span> <span class="o">+</span> <span class="n">MR</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">((</span><span class="n">fuse_on_eap</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">fuse_on_eap</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="ow">or</span>
+            <span class="p">(</span><span class="n">fuse_on_karaf</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="n">fuse_on_karaf</span><span class="o">.</span><span class="n">values</span><span class="p">()))):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_SUMMARY</span><span class="p">:</span> <span class="s1">&#39;Yes, Fuse installation present&#39;</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">fuse_init_files</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_SUMMARY</span><span class="p">:</span>
+                <span class="s1">&#39;Maybe - a Fuse installation might be present&#39;</span><span class="p">}</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="n">JBOSS_FUSE_SUMMARY</span><span class="p">:</span> <span class="s1">&#39;No Fuse installation detected&#39;</span><span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="escape_characters"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.escape_characters">[docs]</a><span class="k">def</span> <span class="nf">escape_characters</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Processes input data values and strips out any newlines or commas</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">utilities</span><span class="o">.</span><span class="n">is_stringlike</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;unicode_escape&#39;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">UnicodeEncodeError</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="encode_and_join"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.encode_and_join">[docs]</a><span class="k">def</span> <span class="nf">encode_and_join</span><span class="p">(</span><span class="n">join_char</span><span class="p">,</span> <span class="n">list_of_strings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a list of utf-8 encoded strings and join them.</span>
+
+<span class="sd">    :param join_char: The character to join on</span>
+<span class="sd">    :param list_of_strings: Strings to encode and join</span>
+<span class="sd">    :returns: joined encoded string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">new_strings</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">unencoded</span> <span class="ow">in</span> <span class="n">list_of_strings</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">unencoded</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">unencoded</span>
+        <span class="n">new_strings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">join_char</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_strings</span><span class="p">)</span></div>
+
+
+<span class="c1"># pylint: disable=no-self-use</span>
+<div class="viewcode-block" id="determine_pkg_facts"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.determine_pkg_facts">[docs]</a><span class="k">def</span> <span class="nf">determine_pkg_facts</span><span class="p">(</span><span class="n">rh_packages</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the last installed and last build packages from the list</span>
+
+<span class="sd">    :param rh_packages: the filtered list of red hat packages</span>
+<span class="sd">    :returns: tuple of last installed and last built</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">last_installed</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_built</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">max_install_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
+    <span class="n">max_build_time</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;-inf&quot;</span><span class="p">)</span>
+    <span class="n">is_red_hat</span> <span class="o">=</span> <span class="s1">&#39;Y&#39;</span> <span class="k">if</span> <span class="n">rh_packages</span> <span class="k">else</span> <span class="s1">&#39;N&#39;</span>
+
+    <span class="k">for</span> <span class="n">pkg</span> <span class="ow">in</span> <span class="n">rh_packages</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pkg</span><span class="o">.</span><span class="n">install_time</span> <span class="o">&gt;</span> <span class="n">max_install_time</span><span class="p">:</span>
+            <span class="n">max_install_time</span> <span class="o">=</span> <span class="n">pkg</span><span class="o">.</span><span class="n">install_time</span>
+            <span class="n">last_installed</span> <span class="o">=</span> <span class="n">pkg</span>
+        <span class="k">if</span> <span class="n">pkg</span><span class="o">.</span><span class="n">build_time</span> <span class="o">&gt;</span> <span class="n">max_build_time</span><span class="p">:</span>
+            <span class="n">max_build_time</span> <span class="o">=</span> <span class="n">pkg</span><span class="o">.</span><span class="n">build_time</span>
+            <span class="n">last_built</span> <span class="o">=</span> <span class="n">pkg</span>
+
+    <span class="n">last_installed_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">last_installed</span><span class="o">.</span><span class="n">details_install</span><span class="p">()</span>
+                          <span class="k">if</span> <span class="n">last_installed</span> <span class="k">else</span> <span class="s1">&#39;none&#39;</span><span class="p">)</span>
+    <span class="n">last_built_val</span> <span class="o">=</span> <span class="p">(</span><span class="n">last_built</span><span class="o">.</span><span class="n">details_built</span><span class="p">()</span> <span class="k">if</span> <span class="n">last_built</span> <span class="k">else</span> <span class="s1">&#39;none&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">is_red_hat</span><span class="p">,</span> <span class="n">last_installed_val</span><span class="p">,</span> <span class="n">last_built_val</span></div>
+
+
+<span class="n">PREFIX</span> <span class="o">=</span> <span class="s1">&#39;redhat-packages.gpg.&#39;</span>
+<span class="n">IS_REDHAT</span> <span class="o">=</span> <span class="n">PREFIX</span> <span class="o">+</span> <span class="s1">&#39;is_redhat&#39;</span>
+<span class="n">NUM_RH</span> <span class="o">=</span> <span class="n">PREFIX</span> <span class="o">+</span> <span class="s1">&#39;num_rh_packages&#39;</span>
+<span class="n">INSTALLED_PKG</span> <span class="o">=</span> <span class="n">PREFIX</span> <span class="o">+</span> <span class="s1">&#39;num_installed_packages&#39;</span>
+<span class="n">LAST_INSTALLED</span> <span class="o">=</span> <span class="n">PREFIX</span> <span class="o">+</span> <span class="s1">&#39;last_installed&#39;</span>
+<span class="n">LAST_BUILT</span> <span class="o">=</span> <span class="n">PREFIX</span> <span class="o">+</span> <span class="s1">&#39;last_built&#39;</span>
+
+
+<span class="c1"># pylint: disable=too-many-locals, too-many-branches, too-many-statements</span>
+<div class="viewcode-block" id="handle_redhat_packages"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.handle_redhat_packages">[docs]</a><span class="k">def</span> <span class="nf">handle_redhat_packages</span><span class="p">(</span><span class="n">facts</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Process the output of redhat-packages.results</span>
+<span class="sd">    and supply the appropriate output information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;redhat-packages.results&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="k">return</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">installed_packages</span> <span class="o">=</span> <span class="p">[</span><span class="n">PkgInfo</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s2">&quot;|&quot;</span><span class="p">)</span>
+                              <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;redhat-packages.results&#39;</span><span class="p">]]</span>
+    <span class="k">except</span> <span class="n">PkgInfoParseException</span><span class="p">:</span>
+        <span class="c1"># facts are already initialized as empty strings</span>
+        <span class="c1"># just remove the results field</span>
+        <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;redhat-packages.results&#39;</span><span class="p">]</span>
+        <span class="k">return</span>
+
+    <span class="n">rh_gpg_packages</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">PkgInfo</span><span class="o">.</span><span class="n">is_gpg_red_hat_pkg</span><span class="p">,</span>
+                                  <span class="n">installed_packages</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">INSTALLED_PKG</span> <span class="ow">in</span> <span class="n">facts</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">INSTALLED_PKG</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">installed_packages</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">NUM_RH</span> <span class="ow">in</span> <span class="n">facts</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">NUM_RH</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rh_gpg_packages</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">rh_gpg_packages</span><span class="p">:</span>
+        <span class="n">is_red_hat</span><span class="p">,</span> <span class="n">last_installed</span><span class="p">,</span> <span class="n">last_built</span> <span class="o">=</span> \
+            <span class="n">determine_pkg_facts</span><span class="p">(</span><span class="n">rh_gpg_packages</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">IS_REDHAT</span> <span class="ow">in</span> <span class="n">facts</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">IS_REDHAT</span><span class="p">]</span> <span class="o">=</span> <span class="n">is_red_hat</span>
+        <span class="k">if</span> <span class="n">LAST_INSTALLED</span> <span class="ow">in</span> <span class="n">facts</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">LAST_INSTALLED</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_installed</span>
+        <span class="k">if</span> <span class="n">LAST_BUILT</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">LAST_BUILT</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_built</span>
+
+    <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;redhat-packages.results&#39;</span><span class="p">]</span></div>
+
+
+<span class="c1"># pylint: disable=too-many-instance-attributes</span>
+<div class="viewcode-block" id="PkgInfo"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfo">[docs]</a><span class="k">class</span> <span class="nc">PkgInfo</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;This is an inner class for RedhatPackagesRhoCmd</span>
+<span class="sd">    class and provides functionality to parse the</span>
+<span class="sd">    results of running the (only) command string</span>
+<span class="sd">    named &#39;get_package_info&#39;. This is purely to</span>
+<span class="sd">    make the parsing cleaner and understandable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">RED_HAT_KEYS</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;199e2f91fd431d51&#39;</span><span class="p">,</span> <span class="s1">&#39;5326810137017186&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;45689c882fa658e0&#39;</span><span class="p">,</span> <span class="s1">&#39;219180cddb42a60e&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;7514f77d8366b0d9&#39;</span><span class="p">,</span> <span class="s1">&#39;45689c882fa658e0&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">separator</span><span class="p">):</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">row</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">14</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PkgInfoParseException</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">release</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">install_time</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vendor</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_time</span> <span class="o">=</span> <span class="n">long</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_host</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">source_rpm</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">7</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">license</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">packager</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">9</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">install_date</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">build_date</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="mi">11</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;redhat.com&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_host</span> <span class="ow">and</span>
+                    <span class="s1">&#39;fedora&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_host</span> <span class="ow">and</span>
+                    <span class="s1">&#39;rhndev&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_host</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">gpgkeys</span> <span class="o">=</span> <span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">12</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="mi">13</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="mi">14</span><span class="p">],</span> <span class="n">cols</span><span class="p">[</span><span class="mi">15</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat_gpg</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">known_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">RED_HAT_KEYS</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">rpm_gpg_key</span> <span class="ow">in</span> <span class="n">gpgkeys</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">known_key</span> <span class="ow">in</span> <span class="n">rpm_gpg_key</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat_gpg</span> <span class="o">=</span> <span class="kc">True</span>
+                        <span class="k">break</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat_gpg</span><span class="p">:</span>
+                    <span class="k">break</span>
+
+    <span class="c1"># Helper methods to help with recording data in requested fields.</span>
+
+<div class="viewcode-block" id="PkgInfo.is_gpg_red_hat_pkg"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfo.is_gpg_red_hat_pkg">[docs]</a>    <span class="k">def</span> <span class="nf">is_gpg_red_hat_pkg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Determines if package is a Red Hat package with known GPG key.</span>
+<span class="sd">        :returns: True if Red Hat, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_red_hat_gpg</span></div>
+
+<div class="viewcode-block" id="PkgInfo.details_built"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfo.details_built">[docs]</a>    <span class="k">def</span> <span class="nf">details_built</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provides information on when the package was built</span>
+<span class="sd">        :returns: String including details and build date</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> Built: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">details</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PkgInfo.details_install"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfo.details_install">[docs]</a>    <span class="k">def</span> <span class="nf">details_install</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provides information on when the package was installed.</span>
+<span class="sd">        :returns: String including installation date</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> Installed: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">details</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">install_date</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PkgInfo.details"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfo.details">[docs]</a>    <span class="k">def</span> <span class="nf">details</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Provides package details including name, version and release.</span>
+<span class="sd">        :returns: String including name, version and release</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">-</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">release</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="PkgInfoParseException"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.PkgInfoParseException">[docs]</a><span class="k">class</span> <span class="nc">PkgInfoParseException</span><span class="p">(</span><span class="ne">BaseException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defining an exception for failing to parse package information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="handle_systemid"><a class="viewcode-back" href="../../rho.html#rho.postprocessing.handle_systemid">[docs]</a><span class="k">def</span> <span class="nf">handle_systemid</span><span class="p">(</span><span class="n">fact_names</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process the output of systemid.contents</span>
+<span class="sd">    and supply the appropriate output information</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;systemid.contents&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+        <span class="n">blob</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.contents&#39;</span><span class="p">]</span>
+        <span class="n">id_in_facts</span> <span class="o">=</span> <span class="s1">&#39;SysId_systemid.system_id&#39;</span> <span class="ow">in</span> <span class="n">fact_names</span>
+        <span class="n">username_in_facts</span> <span class="o">=</span> <span class="s1">&#39;SysId_systemid.username&#39;</span> <span class="ow">in</span> <span class="n">fact_names</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">systemid</span> <span class="o">=</span> <span class="n">xmlrpclib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">blob</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">id_in_facts</span> <span class="ow">and</span> <span class="s1">&#39;system_id&#39;</span><span class="ow">in</span> <span class="n">systemid</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.system_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">systemid</span><span class="p">[</span><span class="s1">&#39;system_id&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">username_in_facts</span> <span class="ow">and</span> <span class="s1">&#39;usnername&#39;</span> <span class="ow">in</span> <span class="n">systemid</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.username&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">systemid</span><span class="p">[</span><span class="s1">&#39;usnername&#39;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="n">xml</span><span class="o">.</span><span class="n">parsers</span><span class="o">.</span><span class="n">expat</span><span class="o">.</span><span class="n">ExpatError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">id_in_facts</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.system_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;error&#39;</span>
+            <span class="k">if</span> <span class="n">username_in_facts</span><span class="p">:</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.username&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;error&#39;</span>
+
+        <span class="k">del</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;systemid.contents&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

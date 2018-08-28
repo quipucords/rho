@@ -1,0 +1,291 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.vault &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.vault</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright (c) 2009-2016 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="sd">&quot;&quot;&quot; Vault is used to read and write data securely using the Ansible vault &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">from</span> <span class="nn">shutil</span> <span class="k">import</span> <span class="n">move</span>
+<span class="kn">from</span> <span class="nn">getpass</span> <span class="k">import</span> <span class="n">getpass</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">ansible.parsing.vault</span> <span class="k">import</span> <span class="n">VaultLib</span>
+<span class="kn">from</span> <span class="nn">ansible.errors</span> <span class="k">import</span> <span class="n">AnsibleError</span>
+<span class="kn">from</span> <span class="nn">rho.translation</span> <span class="k">import</span> <span class="n">_</span> <span class="k">as</span> <span class="n">t</span>
+
+<span class="n">PROMPT</span> <span class="o">=</span> <span class="s2">&quot;Please enter your rho vault password: &quot;</span>
+<span class="n">ERROR_PROMPT</span> <span class="o">=</span> <span class="s1">&#39;Error: The vault password cannot be empty. &#39;</span>\
+    <span class="s1">&#39;Please provide a non-empty password.&#39;</span>
+
+
+<div class="viewcode-block" id="represent_none"><a class="viewcode-back" href="../../rho.html#rho.vault.represent_none">[docs]</a><span class="k">def</span> <span class="nf">represent_none</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Render None with nothing in yaml string when dumped &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">represent_scalar</span><span class="p">(</span><span class="s1">&#39;tag:yaml.org,2002:null&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+
+<span class="n">yaml</span><span class="o">.</span><span class="n">add_representer</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">represent_none</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="read_vault_password"><a class="viewcode-back" href="../../rho.html#rho.vault.read_vault_password">[docs]</a><span class="k">def</span> <span class="nf">read_vault_password</span><span class="p">(</span><span class="n">vault_password_file</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reads vault password from file for scripting</span>
+
+<span class="sd">    :param vault_password_file: Path to vault password file</span>
+<span class="sd">    :returns: vault password string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vault_password</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">vault_password_file</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">vault_password_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">vault_file</span><span class="p">:</span>
+            <span class="n">lines</span> <span class="o">=</span> <span class="n">vault_file</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+                <span class="n">vault_password</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+    <span class="k">return</span> <span class="n">vault_password</span></div>
+
+
+<div class="viewcode-block" id="get_vault_password"><a class="viewcode-back" href="../../rho.html#rho.vault.get_vault_password">[docs]</a><span class="k">def</span> <span class="nf">get_vault_password</span><span class="p">(</span><span class="n">prompt</span><span class="o">=</span><span class="n">PROMPT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Requests the users password from the command line &quot;&quot;&quot;</span>
+    <span class="n">vault_password</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="k">while</span> <span class="n">vault_password</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+        <span class="n">vault_password</span> <span class="o">=</span> <span class="n">getpass</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[01;36m&quot;</span> <span class="o">+</span> <span class="n">prompt</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\033</span><span class="s2">[0m&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">vault_password</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">ERROR_PROMPT</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">vault_password</span></div>
+
+
+<div class="viewcode-block" id="get_vault_and_password"><a class="viewcode-back" href="../../rho.html#rho.vault.get_vault_and_password">[docs]</a><span class="k">def</span> <span class="nf">get_vault_and_password</span><span class="p">(</span><span class="n">vaultfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">PROMPT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper method that will get the vault password via input file or from</span>
+<span class="sd">    standard input and then initialize a vault for users</span>
+
+<span class="sd">    :param vaultfile: The location of a file with the vault password</span>
+<span class="sd">    :returns: An initialized vault and the password</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">vault_pass</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">vaultfile</span><span class="p">:</span>
+        <span class="n">vault_pass</span> <span class="o">=</span> <span class="n">read_vault_password</span><span class="p">(</span><span class="n">vaultfile</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">vault_pass</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">vault_pass</span> <span class="o">=</span> <span class="n">get_vault_password</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">Vault</span><span class="p">(</span><span class="n">vault_pass</span><span class="p">),</span> <span class="n">vault_pass</span></div>
+
+
+<div class="viewcode-block" id="get_vault"><a class="viewcode-back" href="../../rho.html#rho.vault.get_vault">[docs]</a><span class="k">def</span> <span class="nf">get_vault</span><span class="p">(</span><span class="n">vaultfile</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prompt</span><span class="o">=</span><span class="n">PROMPT</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper method that will get the vault password via input file or from</span>
+<span class="sd">    standard input and then initialize a vault for users</span>
+
+<span class="sd">    :param vaultfile: The location of a file with the vault password</span>
+<span class="sd">    :returns: An initialized vault</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pylint: disable=unused-variable</span>
+    <span class="n">vault</span><span class="p">,</span> <span class="n">vault_pass</span> <span class="o">=</span> <span class="n">get_vault_and_password</span><span class="p">(</span><span class="n">vaultfile</span><span class="p">,</span> <span class="n">prompt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">vault</span></div>
+
+
+<div class="viewcode-block" id="Vault"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault">[docs]</a><span class="k">class</span> <span class="nc">Vault</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; R/W an ansible-vault file &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">password</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">password</span> <span class="o">=</span> <span class="n">password</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">ansible.parsing.vault</span> <span class="k">import</span> <span class="n">VaultSecret</span>
+            <span class="kn">from</span> <span class="nn">ansible.module_utils._text</span> <span class="k">import</span> <span class="n">to_bytes</span>
+            <span class="n">pass_bytes</span> <span class="o">=</span> <span class="n">to_bytes</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;strict&#39;</span><span class="p">)</span>
+            <span class="n">secrets</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;password&#39;</span><span class="p">,</span> <span class="n">VaultSecret</span><span class="p">(</span><span class="n">_bytes</span><span class="o">=</span><span class="n">pass_bytes</span><span class="p">))]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vault</span> <span class="o">=</span> <span class="n">VaultLib</span><span class="p">(</span><span class="n">secrets</span><span class="o">=</span><span class="n">secrets</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vault</span> <span class="o">=</span> <span class="n">VaultLib</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Vault.load"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read vault steam and return python object</span>
+
+<span class="sd">        :param stream: The stream to read data from</span>
+<span class="sd">        :returns: The decrypted data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vault</span><span class="o">.</span><span class="n">decrypt</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">AnsibleError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">t</span><span class="p">(</span><span class="s2">&quot;Unable to decrypt using given password&quot;</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Vault.load_secure_file"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.load_secure_file">[docs]</a>    <span class="k">def</span> <span class="nf">load_secure_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secure_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read vault secured file and return python object</span>
+
+<span class="sd">        :param secure_file: The file to read data from</span>
+<span class="sd">        :returns: The decrpted data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">secure_file</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="Vault.load_as_json"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.load_as_json">[docs]</a>    <span class="k">def</span> <span class="nf">load_as_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secure_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read vault secured file and return json decoded object</span>
+
+<span class="sd">        :param secure_file: The file to read data from as json</span>
+<span class="sd">        :returns: The JSON data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_secure_file</span><span class="p">(</span><span class="n">secure_file</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Vault.load_as_yaml"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.load_as_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">load_as_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">secure_file</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Read vault secured file and return YAML decoded object</span>
+
+<span class="sd">        :param secure_file: The file to read data from as yaml</span>
+<span class="sd">        :returns: The YAML data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">load_secure_file</span><span class="p">(</span><span class="n">secure_file</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Vault.dump_to_stream"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.dump_to_stream">[docs]</a>    <span class="k">def</span> <span class="nf">dump_to_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Encrypt data and write to stream</span>
+
+<span class="sd">        :param data: The information to be encrypted</span>
+<span class="sd">        :param stream: If not None the location to write the encrypted data to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">encrypted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vault</span><span class="o">.</span><span class="n">encrypt</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">encrypted</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Vault.dump_as_json"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.dump_as_json">[docs]</a>    <span class="k">def</span> <span class="nf">dump_as_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Convert object to json and encrypt the data.</span>
+
+<span class="sd">        :param obj: Python object to convert to json</span>
+<span class="sd">        :param stream: The location to write the encrypted data to.</span>
+<span class="sd">            If this is a file in Python 3, it must be open in binary mode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;: &#39;</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump_to_stream</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Vault.dump_as_json_to_file"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.dump_as_json_to_file">[docs]</a>    <span class="k">def</span> <span class="nf">dump_as_json_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Convert object to json and encrypt the data.</span>
+
+<span class="sd">        :param obj: Python object to convert to json</span>
+<span class="sd">        :param file_path: The file to write data to via temp file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_temp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dump_as_json</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">data_temp</span><span class="p">)</span>
+        <span class="n">data_temp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">move</span><span class="p">(</span><span class="n">data_temp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Vault.dump_as_yaml"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.dump_as_yaml">[docs]</a>    <span class="k">def</span> <span class="nf">dump_as_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">stream</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Convert object to yaml and encrypt the data.</span>
+
+<span class="sd">        :param obj: Python object to convert to yaml</span>
+<span class="sd">        :param stream: The location to write the encrypted data to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump_to_stream</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">stream</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Vault.dump_as_yaml_to_file"><a class="viewcode-back" href="../../rho.html#rho.vault.Vault.dump_as_yaml_to_file">[docs]</a>    <span class="k">def</span> <span class="nf">dump_as_yaml_to_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Convert object to yaml and encrypt the data.</span>
+
+<span class="sd">        :param obj: Python object to convert to yaml</span>
+<span class="sd">        :param file_path: The file to write data to via temp file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">data_temp</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">dump_as_yaml</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">data_temp</span><span class="p">)</span>
+        <span class="n">data_temp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">move</span><span class="p">(</span><span class="n">data_temp</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">file_path</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

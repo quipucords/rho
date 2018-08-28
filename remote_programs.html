@@ -1,0 +1,192 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Remote Programs &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Functional Testing" href="functional_test.html" />
+    <link rel="prev" title="Example rho Scan" href="command_example.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="remote-programs">
+<h1>Remote Programs<a class="headerlink" href="#remote-programs" title="Permalink to this headline">¶</a></h1>
+<p>This file documents which programs on the remote host are used to
+collect different groups of facts. <strong>bold</strong> is used for executables
+that are not standard Unix programs (i.e. not grep, sed, etc.). In
+addition to the programs below, we depend on standard shell facilities
+like those provided by bash.</p>
+<ul class="simple">
+<li>brms.*
+- find
+- sed
+- sort
+- grep / egrep</li>
+<li>cpu.*
+- cat
+- grep
+- sed
+- wc
+- <strong>/usr/sbin/dmidecode</strong></li>
+<li>date.*
+- date
+- ls
+- grep / egrep
+- <strong>tune2fs</strong>
+- mount
+- sed
+- <strong>yum</strong>
+- tail</li>
+<li>dmi.*
+- <strong>/usr/sbin/dmidecode</strong>
+- grep
+- sed</li>
+<li>etc_release.*
+- cat
+- uname</li>
+<li>file_contents.*
+- cat</li>
+<li>jboss.fuse.*
+- find
+- sed
+- sort
+- echo</li>
+<li>jboss.eap.*
+- <strong>chkconfig (used if present)</strong>
+- find
+- grep / egrep
+- <strong>java</strong>
+- sed
+- stat
+- df
+- tail
+- locate
+- ls
+- sort
+- id
+- test
+- ps
+- <strong>rpm</strong>
+- <strong>systemctl (used if present)</strong>
+- xargs</li>
+<li>redhat_packages
+- <strong>rpm</strong></li>
+<li>redhat_release.*
+- <strong>rpm</strong></li>
+<li>subman.*
+- <strong>subscription-manager</strong>
+- grep
+- sed
+- ls
+- wc
+- awk</li>
+<li>uname.*
+- uname</li>
+<li>virt.*
+- command
+- <strong>virsh</strong>
+- ps
+- grep
+- wc
+- <strong>/usr/sbin/dmidecode</strong>
+- sed
+- cat</li>
+<li>virt_what.*
+- command
+- <strong>virt-what</strong>
+- echo</li>
+</ul>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="command_example.html" title="previous chapter">Example rho Scan</a></li>
+      <li>Next: <a href="functional_test.html" title="next chapter">Functional Testing</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/remote_programs.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,364 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Command Syntax &amp; Usage &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Example rho Scan" href="command_example.html" />
+    <link rel="prev" title="Welcome to rho’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="command-syntax-usage">
+<h1>Command Syntax &amp; Usage<a class="headerlink" href="#command-syntax-usage" title="Permalink to this headline">¶</a></h1>
+<p>The basic syntax is:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">command</span> <span class="pre">subcommand</span> <span class="pre">[options]</span></code></p>
+<dl class="docutils">
+<dt>There are four rho commands:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">auth</span></code> - for managing auth entries</li>
+<li><code class="docutils literal notranslate"><span class="pre">profile</span></code> - for managing profile entries</li>
+<li><code class="docutils literal notranslate"><span class="pre">scan</span></code> - for running scans</li>
+<li><code class="docutils literal notranslate"><span class="pre">fact</span></code> - to show information about the facts rho can collect</li>
+</ul>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">auth</span></code> and <code class="docutils literal notranslate"><span class="pre">profile</span></code> both have five subcommands:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">add</span></code> - to create a new entry</li>
+<li><code class="docutils literal notranslate"><span class="pre">edit</span></code> - to modify an existing entry</li>
+<li><code class="docutils literal notranslate"><span class="pre">clear</span></code> - to remove any or all entries</li>
+<li><code class="docutils literal notranslate"><span class="pre">show</span></code> - to display a specific entry</li>
+<li><code class="docutils literal notranslate"><span class="pre">list</span></code> - to display one or more entries</li>
+</ul>
+</dd>
+<dt><code class="docutils literal notranslate"><span class="pre">fact</span></code> has two subcommands:</dt>
+<dd><ul class="first last simple">
+<li><code class="docutils literal notranslate"><span class="pre">list</span></code> - to display the list of facts that can be scanned</li>
+<li><code class="docutils literal notranslate"><span class="pre">hash</span></code> - to hash sensitive facts within report</li>
+</ul>
+</dd>
+</dl>
+<p>The complete list of options for each command and subcommand are listed in the
+rho manpage with other usage examples. The common options are listed with the
+examples in this document.</p>
+<div class="section" id="auth-entries">
+<h2>Auth Entries<a class="headerlink" href="#auth-entries" title="Permalink to this headline">¶</a></h2>
+<p>The first step to configuring rho is adding auth credentials to use to connect
+over SSH. Each authentication identity requires its own auth entry.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">add</span> <span class="pre">--name=server1creds</span> <span class="pre">--username=rho-user</span> <span class="pre">--sshkeyfile=/etc/ssh/ssh_host_rsa_key</span></code></p>
+<p><em>Note:</em> –password not being passed or passed as empty are considered the same thing.</p>
+<div class="section" id="ssh-key-with-a-passphrase">
+<h3>SSH Key with a Passphrase<a class="headerlink" href="#ssh-key-with-a-passphrase" title="Permalink to this headline">¶</a></h3>
+<p>There are two ways to handle ssh keys with passphrases. If a
+passphrase-protected ssh key is specified in an auth and the key is
+not present in the ssh agent, then Rho will prompt the user for the
+passphrase each time it needs to use the key.</p>
+<p>To avoid repetitive prompts, users can add their keys to the local ssh
+agent (as documented at
+<a class="reference external" href="http://docs.ansible.com/ansible/latest/intro_getting_started.html">http://docs.ansible.com/ansible/latest/intro_getting_started.html</a>),
+which will decrypt them once and make them available to Rho.</p>
+</div>
+</div>
+<div class="section" id="profiles">
+<h2>Profiles<a class="headerlink" href="#profiles" title="Permalink to this headline">¶</a></h2>
+<p>Then, create the profile to use for the scan. This should include a list of IP
+addresses or ranges, and the auth identity to use.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">add</span> <span class="pre">--name=profile1</span> <span class="pre">--hosts</span> <span class="pre">1.2.3.[0:255]</span> <span class="pre">--auth</span> <span class="pre">server1creds</span> <span class="pre">server2creds</span></code></p>
+<p>The hosts can be passed in as a file with all the ranges listed in newlines. Example below:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span> <span class="pre">--name=profile1</span> <span class="pre">--hosts</span> <span class="pre">hosts_file</span> <span class="pre">--auth</span> <span class="pre">server1creds</span> <span class="pre">server2creds</span></code></p>
+<p>where <code class="docutils literal notranslate"><span class="pre">hosts_file</span></code> contains the ip address or ranges separated by newlines:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">1.2</span><span class="o">.</span><span class="mf">3.1</span>
+<span class="mf">1.2</span><span class="o">.</span><span class="mf">3.14</span>
+<span class="mf">1.2</span><span class="o">.</span><span class="mf">4.34</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="scanning">
+<h2>Scanning<a class="headerlink" href="#scanning" title="Permalink to this headline">¶</a></h2>
+<p>The options required for a scan are the profile to use and the file path for
+the report. Optionally we can pass the number of Ansible forks and the facts to
+be collected. Finally the <code class="docutils literal notranslate"><span class="pre">cache</span></code> option tells rho that the profile you are
+providing has already been processed for connection mappings.</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span> <span class="pre">--profile=profile1</span> <span class="pre">--reportfile=report.csv</span></code></p>
+<p>Since rho collects the successful host auth mappings from a full scan
+the user doesn’t have to worry about iterating through multiple auths and hosts
+again and again in the same profile as long as the profile hasn’t changed when
+utilizing the <code class="docutils literal notranslate"><span class="pre">cache</span></code> option. For purposes of record keeping the host
+mapping files are always written to whenever a scan is done using a profile.
+When profiles are deleted the host auth mappings
+corresponding to the profile are renamed with prefix <em>(DELETED PROFILE)</em> so that
+they are recognizable. Every scan has a timestamp in the mappings.</p>
+<p>As far as the auths used by the inventory of a particular scan is concerned, it
+is important to note that the order of the auths passed into a profile matters.
+A profile by definition takes in one ordering of auths and all the hosts in
+the profile are tested in that order with the auths before the first auths to
+work are picked to run the fact collection. Therefore, it’s up to the user
+to pass in auths as per the priority they deem fit for a profile. If a non root
+auth is better tried first and then the root auth then the user has to pass in the
+auths in the order as <code class="docutils literal notranslate"><span class="pre">--auth</span> <span class="pre">&lt;nonroot_1&gt;</span> <span class="pre">&lt;nonroot_2&gt;</span> <span class="pre">&lt;root_1&gt;</span> <span class="pre">&lt;root_2&gt;</span></code> etc.</p>
+<p>The output of the Ansible process is saved to <cite>$XDG_DATA_HOME/rho/scan_log</cite> by
+default, for debugging. This location can be changed with the
+<cite>–logfile</cite> flag.</p>
+</div>
+<div class="section" id="common-flags">
+<h2>Common Flags<a class="headerlink" href="#common-flags" title="Permalink to this headline">¶</a></h2>
+<p>All rho commands accept the <cite>-v</cite> flag, which increases the verbosity
+of rho’s output. It comes in four varieties: <cite>-v</cite>, <cite>-vv</cite>, <cite>-vvv</cite>, and
+<cite>-vvvv</cite>, with more <cite>v</cite>’s indicating more verbose output. The verbose
+output can be useful in debugging.</p>
+</div>
+<div class="section" id="output">
+<h2>Output<a class="headerlink" href="#output" title="Permalink to this headline">¶</a></h2>
+<p>The important part about a scan is the results report. By default,
+this contains a large amount of information about the operating system, hardware, and platform.</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">connection.host</span></code> - The host address of the connection</li>
+<li><code class="docutils literal notranslate"><span class="pre">connection.port</span></code> - The port used for the connection</li>
+<li><code class="docutils literal notranslate"><span class="pre">connection.uuid</span></code> - A generated identifier for the connection</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.bogomips</span></code> - measurement of CPU speed made by the Linux kernel</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.count</span></code> - number of processors</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.core_count</span></code> - number of cores</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.cpu_family</span></code> - cpu family</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.hyperthreading</span></code> - Whether cpu is hyperthreaded</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.model_name</span></code> - cpu model name</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.model_ver</span></code> - cpu model version</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.socket_count</span></code> - number of sockets</li>
+<li><code class="docutils literal notranslate"><span class="pre">cpu.vendor_id</span></code> - cpu vendor name</li>
+<li><code class="docutils literal notranslate"><span class="pre">date.anaconda_log</span></code> - /root/anaconda-ks.cfg modified time</li>
+<li><code class="docutils literal notranslate"><span class="pre">date.date</span></code> - date</li>
+<li><code class="docutils literal notranslate"><span class="pre">date.filesystem_create</span></code> - uses tune2fs -l on the / filesystem dev found using mount</li>
+<li><code class="docutils literal notranslate"><span class="pre">date.machine_id</span></code> - /etc/machine-id modified time’</li>
+<li><code class="docutils literal notranslate"><span class="pre">date.yum_history</span></code> - dates from yum history</li>
+<li><code class="docutils literal notranslate"><span class="pre">dmi.bios-vendor</span></code> - bios vendor name</li>
+<li><code class="docutils literal notranslate"><span class="pre">dmi.bios-version</span></code> - bios version info</li>
+<li><code class="docutils literal notranslate"><span class="pre">dmi.processor-family</span></code> - processor family</li>
+<li><code class="docutils literal notranslate"><span class="pre">dmi.system-manufacturer</span></code> - system manufacturer</li>
+<li><code class="docutils literal notranslate"><span class="pre">etc-issue.etc-issue</span></code> - contents of /etc/issue (or equivalent)</li>
+<li><code class="docutils literal notranslate"><span class="pre">etc_release.name</span></code> - name of the release</li>
+<li><code class="docutils literal notranslate"><span class="pre">etc_release.release</span></code> - release information</li>
+<li><code class="docutils literal notranslate"><span class="pre">etc_release.version</span></code> - release version</li>
+<li><code class="docutils literal notranslate"><span class="pre">instnum.instnum</span></code> - installation number</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.brms</span></code> - general BRMS information</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.brms.drools-core-ver</span></code> - Drools version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.brms.kie-api-ver</span></code> - KIE API version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.brms.kie-war-ver</span></code> - KIE runtime version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.common-files</span></code> - Presence of common files and directories for JBoss EAP</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.deploy-dates</span></code> - List of deployment dates of JBoss EAP installations</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.eap-home</span></code> - Find EAP_HOME directories of JBoss EAP installations</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.find-jboss-modules-jar</span></code> - Use the find command to find jboss-modules.jar</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.init-files</span></code> - Find system services that look JBoss-related</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.installed-versions</span></code> - List of installed versions of JBoss EAP</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.locate-jboss-modules-jar</span></code> - Use locate to find jboss-modules.jar</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.jboss-user</span></code> - Whether a user called ‘jboss’ exists</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.packages</span></code> - Installed RPMs that look like JBoss</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.processes</span></code> - Running processes that look like JBoss</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.running-paths</span></code> - Paths of running installs of JBoss EAP</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.eap.summary</span></code> - Summary of JBoss EAP information</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.activemq-ver</span></code> - ActiveMQ version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.brms.summary</span></code> - Summary of BRMS information</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.camel-ver</span></code> - Camel version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.cxf-ver</span></code> - CXF version</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.fuse.fuse-on-eap</span></code> - Fuse on EAP</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.fuse.init-files</span></code> - Fuse-related init files</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.fuse-on-karaf.find-karaf-jar</span></code> - Use the find utility to locate karaf.jar</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.fuse.summary</span></code> - Summary of Fuse information</li>
+<li><code class="docutils literal notranslate"><span class="pre">jboss.fuse-on-karaf.karaf-home</span></code> - Karaf home</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.certs</span></code> - the list of Red Hat certificates found</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.gpg.is_redhat</span></code> - determines if package is a Red Hat package filtered by GPG keys</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.gpg.last_installed</span></code> - last installed package filtered by GPG keys</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.gpg.last_built</span></code> - last built package filtered by GPG keys</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.gpg.num_rh_packages</span></code> - number of Red Hat packages filtered by GPG keys</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-packages.gpg.num_installed_packages</span></code> - number of installed packages filtered by GPG keys</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-release.name</span></code> - name of package that provides ‘redhat-release’</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-release.release</span></code> - release of package that provides ‘redhat-release’</li>
+<li><code class="docutils literal notranslate"><span class="pre">redhat-release.version</span></code> - version of package that provides ‘redhat-release’</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.consumed</span></code> - consumed SKUs from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.cpu.core(s)_per_socket</span></code> - cpu cores per socket from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.cpu.cpu(s)</span></code> - cpus from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.cpu.cpu_socket(s)</span></code> - cpu sockets from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.has_facts_file</span></code> - Whether subscription manager has a facts file</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.virt.is_guest</span></code> - Whether is a virtual guest from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.virt.host_type</span></code> - Virtual host type from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.virt.uuid</span></code> - Virtual host uuid from subscription manager</li>
+<li><code class="docutils literal notranslate"><span class="pre">systemid.system_id</span></code> - Red Hat Network System ID</li>
+<li><code class="docutils literal notranslate"><span class="pre">systemid.username</span></code> - Red Hat Network username</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.all</span></code> - uname -a (all)</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.hardware_platform</span></code> - uname -i (hardware_platform)</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.hostname</span></code> - uname -n (hostname)</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.kernel</span></code> - uname -r (kernel)</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.os</span></code> - uname -s (os)</li>
+<li><code class="docutils literal notranslate"><span class="pre">uname.processor</span></code> - uname -p (processor)</li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.num_guests</span></code> - the number of virtualized guests</li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.num_running_guests</span></code> - the number of running virtualized guests</li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.type</span></code> - type of virtual system</li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.virt</span></code> - host, guest, or baremetal</li>
+<li><code class="docutils literal notranslate"><span class="pre">virt-what.type</span></code> - What type of virtualization a system is running</li>
+</ul>
+<p>The output can then be configured to contain any combination of these fields by using the
+<code class="docutils literal notranslate"><span class="pre">--facts</span></code> option. The following is the format rho understands for all the facts. Some or all
+of these facts can be requested by either as a CLI list i.e. <code class="docutils literal notranslate"><span class="pre">--facts</span> <span class="pre">&lt;fact_1&gt;</span> <span class="pre">&lt;fact_2&gt;</span></code> etc
+or by passing in a file with a new fact on every line in the format as follows. A value
+of ‘default’ will get all the information listed above.</p>
+<p>For further details of the command usage view the following
+<a class="reference external" href="command_example.rst">example</a>.</p>
+</div>
+<div class="section" id="scan-user-permissions">
+<h2>Scan User Permissions<a class="headerlink" href="#scan-user-permissions" title="Permalink to this headline">¶</a></h2>
+<p>Some of the output facts will report an error if the user used to perform the
+scan does not have the appropriate permissions to execute the command used to
+gather the targeted facts. The following set of facts require <em>admin/root</em>
+permissions to collect the facts:</p>
+<ul class="simple">
+<li><code class="docutils literal notranslate"><span class="pre">cpu.socket_count</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">date.anaconda_log</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">date.yum_history</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">dmi.x</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">subman.x</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.virt</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">virt.type</span></code></li>
+<li><code class="docutils literal notranslate"><span class="pre">virt-what.x</span></code></li>
+</ul>
+<p>The scan user can successful collect these values if the user is <strong>root</strong> or
+has the ability to perform a <code class="docutils literal notranslate"><span class="pre">sudo</span></code>. The following
+provides the necessary content for the <code class="docutils literal notranslate"><span class="pre">/etc/sudoers</span></code> file where <em>scanuser</em>
+represents the username used for the scan.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Cmnd_Alias</span> <span class="n">SCAN</span> <span class="o">=</span> <span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">subscription</span><span class="o">-</span><span class="n">manager</span><span class="p">,</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">dmidecode</span><span class="p">,</span> <span class="o">/</span><span class="n">usr</span><span class="o">/</span><span class="n">sbin</span><span class="o">/</span><span class="n">virt</span><span class="o">-</span><span class="n">what</span>
+<span class="n">scanuser</span> <span class="n">ALL</span><span class="o">=</span><span class="n">NOPASSWD</span><span class="p">:</span> <span class="n">SCAN</span>
+</pre></div>
+</div>
+<p>If the scan user uses a password to sudo, one can be given with the
+<cite>–sudo-password</cite> option to the <cite>auth add</cite> and <cite>auth edit</cite>
+commands. The sudo-with-password fundtionality can be tested by using
+the ‘askpass’ box in the Vagrantfile.</p>
+</div>
+<div class="section" id="jboss-lightweight-and-heavyweight-scans">
+<h2>JBoss Lightweight and Heavyweight Scans<a class="headerlink" href="#jboss-lightweight-and-heavyweight-scans" title="Permalink to this headline">¶</a></h2>
+<p>The JBoss facts come in two kinds. Some facts attempt to detect JBoss
+by looking at the running process table, or at a small list of common
+installation paths. These facts are run in rho by default, and can be
+selected using <cite>–facts jboss</cite>. They are called the “lightweight
+scan”.</p>
+<p>The other set of facts uses <cite>find</cite> to search the entire filesystem on
+the machine being scanned. These are more thorough, because they can
+find an EAP installation even if it is in an unusual location and not
+running, but they also require much more I/O and computation on the
+scanned machine. These are called the “heavyweight scan”. They are not
+run by default, but can be selected with <cite>–facts all</cite>. There is a
+danger that the heavyweight scan could interfere with a user
+application running on the scanned machine, especially if that
+application uses a lot of CPU or does a lot of I/O.</p>
+<p>The distinction is meant to allow a tradeoff between performance and
+completeness. A reasonable approach would be to run the lightweight
+scan first, see if the results make sense, and decide whether to run
+the heavyweight scan on a host-by-host basis.</p>
+</div>
+<div class="section" id="programs-on-remote-machines">
+<h2>Programs on Remote Machines<a class="headerlink" href="#programs-on-remote-machines" title="Permalink to this headline">¶</a></h2>
+<p>Besides standard Unix utilities, some rho fact collectors depend on
+specific programs being installed on the machines being scanned. The
+complete list is at <a class="reference external" href="github.com/quipucords/rho/doc/source/remote_programs.rst">remote programs</a>.</p>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Command Syntax &amp; Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#auth-entries">Auth Entries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#profiles">Profiles</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scanning">Scanning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#common-flags">Common Flags</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scan-user-permissions">Scan User Permissions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#jboss-lightweight-and-heavyweight-scans">JBoss Lightweight and Heavyweight Scans</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#programs-on-remote-machines">Programs on Remote Machines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to rho’s documentation!</a></li>
+      <li>Next: <a href="command_example.html" title="next chapter">Example rho Scan</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/command_syntax_usage.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

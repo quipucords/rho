@@ -1,0 +1,237 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.cli &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.cli</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Based on sm-photo-tool cli.py: http://github.com/jmrodri/sm-photo-tool/</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright (c) 2009 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+<span class="c1">#</span>
+
+<span class="c1"># pylint: disable=R0903, unused-import</span>
+
+<span class="sd">&quot;&quot;&quot; Rho Command Line Interface &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">ansible</span>
+<span class="kn">import</span> <span class="nn">rho</span>
+<span class="kn">from</span> <span class="nn">rho.clicommand</span> <span class="k">import</span> <span class="n">CliCommand</span>
+<span class="kn">from</span> <span class="nn">rho.authaddcommand</span> <span class="k">import</span> <span class="n">AuthAddCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.authclearcommand</span> <span class="k">import</span> <span class="n">AuthClearCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.autheditcommand</span> <span class="k">import</span> <span class="n">AuthEditCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.authlistcommand</span> <span class="k">import</span> <span class="n">AuthListCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.authshowcommand</span> <span class="k">import</span> <span class="n">AuthShowCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.factlistcommand</span> <span class="k">import</span> <span class="n">FactListCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.facthashcommand</span> <span class="k">import</span> <span class="n">FactHashCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.profileaddcommand</span> <span class="k">import</span> <span class="n">ProfileAddCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.profileclearcommand</span> <span class="k">import</span> <span class="n">ProfileClearCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.profileeditcommand</span> <span class="k">import</span> <span class="n">ProfileEditCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.profilelistcommand</span> <span class="k">import</span> <span class="n">ProfileListCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.profileshowcommand</span> <span class="k">import</span> <span class="n">ProfileShowCommand</span>  <span class="c1"># noqa</span>
+<span class="kn">from</span> <span class="nn">rho.scancommand</span> <span class="k">import</span> <span class="n">ScanCommand</span>  <span class="c1"># noqa</span>
+
+
+<div class="viewcode-block" id="CLI"><a class="viewcode-back" href="../../rho.html#rho.cli.CLI">[docs]</a><span class="k">class</span> <span class="nc">CLI</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class responsible for displaying ussage or matching inputs</span>
+<span class="sd">    to the valid set of commands supported by rho.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># pylint: disable=unused-variable</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">clazz</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="vm">__name__</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">clazz</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">clazz</span><span class="p">,</span> <span class="nb">type</span><span class="p">)</span> <span class="ow">and</span>  \
+                        <span class="nb">issubclass</span><span class="p">(</span><span class="n">clazz</span><span class="p">,</span> <span class="n">CliCommand</span><span class="p">):</span>
+                    <span class="n">cmd</span> <span class="o">=</span> <span class="n">clazz</span><span class="p">()</span>
+                    <span class="c1"># ignore the base class</span>
+                    <span class="k">if</span> <span class="n">cmd</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s2">&quot;cli&quot;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">[</span><span class="n">cmd</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cmd</span>
+
+    <span class="k">def</span> <span class="nf">_add_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Add a command to the valid commands list</span>
+<span class="sd">        :param cmd: The command to add to the valid command list</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">[</span><span class="n">cmd</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">cmd</span>
+
+    <span class="k">def</span> <span class="nf">_usage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;rho command lines usage command to supply basic help information.</span>
+<span class="sd">        Supplys list of commands and a short description</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Usage: </span><span class="si">%s</span><span class="s2"> [options] MODULENAME --help</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Supported modules:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># want the output sorted</span>
+        <span class="n">items</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cmd</span><span class="p">)</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="si">%-14s</span><span class="s2"> </span><span class="si">%-25s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">cmd</span><span class="o">.</span><span class="n">shortdesc</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_find_best_match</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns the subcommand class that best matches the subcommand specified</span>
+<span class="sd">        in the argument list. For example, if you have two commands that start</span>
+<span class="sd">        with auth, &#39;auth show&#39; and &#39;auth&#39;. Passing in auth show will match</span>
+<span class="sd">        &#39;auth show&#39; not auth. If there is no &#39;auth show&#39;, it tries to find</span>
+<span class="sd">        &#39;auth&#39;.</span>
+
+<span class="sd">        This function ignores the arguments which begin with --</span>
+<span class="sd">        :param args: The command line arguments</span>
+<span class="sd">        :returns: The matched command or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">possiblecmd</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">arg</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
+                <span class="n">possiblecmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">possiblecmd</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">possiblecmd</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">possiblecmd</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">:</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">while</span> <span class="n">cmd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">possiblecmd</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;&quot;</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">:</span>
+                <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cli_commands</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="n">i</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">cmd</span>
+
+<div class="viewcode-block" id="CLI.main"><a class="viewcode-back" href="../../rho.html#rho.cli.CLI.main">[docs]</a>    <span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Method determine whether to display usage or pass input</span>
+<span class="sd">        to find the best command match. If no match is found the</span>
+<span class="sd">        usage is displayed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">len_sys_argv</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">len_sys_argv</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_best_match</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">len_sys_argv</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;--help&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_usage</span><span class="p">()</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">len_sys_argv</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;--version&#39;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;version: &#39;</span> <span class="o">+</span> <span class="n">rho</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">ansible: &#39;</span> <span class="o">+</span> <span class="n">ansible</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">python: &#39;</span> <span class="o">+</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_usage</span><span class="p">()</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_best_match</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">cmd</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_usage</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">cmd</span><span class="o">.</span><span class="n">main</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

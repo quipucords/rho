@@ -1,0 +1,426 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.scancommand &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.scancommand</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright (c) 2009-2016 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+<span class="c1"># pylint: disable=too-few-public-methods, too-many-lines</span>
+
+<span class="sd">&quot;&quot;&quot; Rho CLI Commands &quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="k">import</span> <span class="n">NamedTemporaryFile</span>
+<span class="kn">from</span> <span class="nn">ansible</span> <span class="k">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">ansible_version</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">__version__</span> <span class="k">as</span> <span class="n">rho_version</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">utilities</span>
+<span class="kn">from</span> <span class="nn">rho.clicommand</span> <span class="k">import</span> <span class="n">CliCommand</span>
+<span class="kn">from</span> <span class="nn">rho.vault</span> <span class="k">import</span> <span class="n">get_vault_and_password</span>
+<span class="kn">from</span> <span class="nn">rho.utilities</span> <span class="k">import</span> <span class="p">(</span>
+    <span class="n">multi_arg</span><span class="p">,</span> <span class="n">_read_in_file</span><span class="p">,</span> <span class="n">iteritems</span><span class="p">,</span>
+    <span class="n">PROFILE_HOSTS_SUFIX</span><span class="p">,</span>
+    <span class="n">PROFILE_HOST_AUTH_MAPPING_SUFFIX</span><span class="p">,</span>
+    <span class="n">log</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">host_discovery</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">inventory_scan</span>
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">facts</span>
+<span class="kn">from</span> <span class="nn">rho.translation</span> <span class="k">import</span> <span class="n">_</span>
+
+
+<div class="viewcode-block" id="redacted_auth_string"><a class="viewcode-back" href="../../rho.html#rho.scancommand.redacted_auth_string">[docs]</a><span class="k">def</span> <span class="nf">redacted_auth_string</span><span class="p">(</span><span class="n">auth</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Format an auth for the host auth mapping file.</span>
+
+<span class="sd">    :param auth: the auth. A dictionary with fields &#39;id&#39;, &#39;name&#39;,</span>
+<span class="sd">        &#39;username&#39;, &#39;password&#39;, and &#39;ssh_key_file&#39;.</span>
+
+<span class="sd">    :returns: a string of the form</span>
+<span class="sd">      &#39;name, username, ********, ssh_key_file&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;username&#39;</span><span class="p">)</span>
+    <span class="n">ssh_key_file</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ssh_key_file&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">, </span><span class="si">{1}</span><span class="s1">, </span><span class="si">{2}</span><span class="s1">, </span><span class="si">{3}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">utilities</span><span class="o">.</span><span class="n">PASSWORD_MASKING</span><span class="p">,</span> <span class="n">ssh_key_file</span><span class="p">)</span></div>
+
+
+<span class="c1"># Helper function to create a file to store the mapping</span>
+<span class="c1"># between hosts and ALL the auths that were ever succesful</span>
+<span class="c1"># with them arranged according to profile and date of scan.</span>
+<span class="k">def</span> <span class="nf">_create_hosts_auths_file</span><span class="p">(</span><span class="n">success_auth_map</span><span class="p">,</span> <span class="n">profile</span><span class="p">):</span>
+    <span class="n">host_auth_mapping</span> <span class="o">=</span> <span class="n">profile</span> <span class="o">+</span> <span class="n">PROFILE_HOST_AUTH_MAPPING_SUFFIX</span>
+    <span class="n">host_auth_mapping_path</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">get_config_path</span><span class="p">(</span><span class="n">host_auth_mapping</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">host_auth_mapping_path</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">host_auth_file</span><span class="p">:</span>
+        <span class="n">string_to_write</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%c</span><span class="s2">&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">-&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---&#39;</span> \
+                                                <span class="s1">&#39;---</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">for</span> <span class="n">host</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">iteritems</span><span class="p">(</span><span class="n">success_auth_map</span><span class="p">):</span>
+            <span class="n">string_to_write</span> <span class="o">+=</span> <span class="n">host</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">----------------------</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">for</span> <span class="n">auth</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">string_to_write</span> <span class="o">+=</span> <span class="n">redacted_auth_string</span><span class="p">(</span><span class="n">auth</span><span class="p">)</span>
+            <span class="n">string_to_write</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+        <span class="n">string_to_write</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">*******************************&#39;</span> \
+                           <span class="s1">&#39;*********************************&#39;</span> \
+                           <span class="s1">&#39;**************</span><span class="se">\n\n</span><span class="s1">&#39;</span>
+        <span class="n">host_auth_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">string_to_write</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ScanCommand"><a class="viewcode-back" href="../../rho.html#rho.scancommand.ScanCommand">[docs]</a><span class="k">class</span> <span class="nc">ScanCommand</span><span class="p">(</span><span class="n">CliCommand</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; The command that performs the scanning and collection of</span>
+<span class="sd">    facts by making the playbook, inventory and running ansible.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">usage</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;usage: %prog scan [options] PROFILE&quot;</span><span class="p">)</span>
+        <span class="n">shortdesc</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;scan given host profile&quot;</span><span class="p">)</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="n">_</span><span class="p">(</span><span class="s2">&quot;scans the host profile&quot;</span><span class="p">)</span>
+
+        <span class="n">CliCommand</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;scan&quot;</span><span class="p">,</span> <span class="n">usage</span><span class="p">,</span> <span class="n">shortdesc</span><span class="p">,</span> <span class="n">desc</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--cache&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;store_true&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;RESET&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Use if profiles/auths previously &quot;</span>
+                                      <span class="s2">&quot;discovered should be reused&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--profile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;profile&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;PROFILE&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;NAME of the profile - REQUIRED&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--reportfile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;report_path&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;REPORTFILE&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Report file path - REQUIRED&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--facts&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;facts&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FACTS&quot;</span><span class="p">,</span>
+                               <span class="n">action</span><span class="o">=</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span> <span class="n">callback</span><span class="o">=</span><span class="n">multi_arg</span><span class="p">,</span>
+                               <span class="n">default</span><span class="o">=</span><span class="p">[],</span> <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;&#39;default&#39;, list or file&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--scan-dirs&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;scan_dirs&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;SCANDIRS&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;callback&quot;</span><span class="p">,</span>
+                               <span class="n">callback</span><span class="o">=</span><span class="n">multi_arg</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;list of remote directories to scan&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--ansible-forks&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;ansible_forks&quot;</span><span class="p">,</span>
+                               <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;FORKS&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;number of ansible forks&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--vault&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;vaultfile&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;VAULT&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;file containing vault password for&quot;</span>
+                                      <span class="s2">&quot; scripting&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_option</span><span class="p">(</span><span class="s2">&quot;--logfile&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;logfile&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s2">&quot;LOGFILE&quot;</span><span class="p">,</span>
+                               <span class="n">help</span><span class="o">=</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;file to log scan output to&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">facts_to_collect</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="c1"># pylint: disable=too-many-branches</span>
+    <span class="k">def</span> <span class="nf">_validate_options</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">CliCommand</span><span class="o">.</span><span class="n">_validate_options</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">profile</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No profile specified.&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">report_path</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;No report location specified.&quot;</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">ansible_forks</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">ansible_forks</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;--ansible-forks can only be a positive integer.&quot;</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+                    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;--ansible-forks can only be a positive integer.&quot;</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># perform fact validation</span>
+        <span class="n">input_facts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">facts</span>
+        <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_facts</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">input_facts</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">input_facts</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">input_facts</span> <span class="o">=</span> <span class="n">_read_in_file</span><span class="p">(</span><span class="n">input_facts</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">facts_to_collect</span> <span class="o">=</span> <span class="n">facts</span><span class="o">.</span><span class="n">expand_facts</span><span class="p">(</span><span class="n">input_facts</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span> <span class="o">==</span> <span class="p">[]:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;/opt&#39;</span><span class="p">,</span> <span class="s1">&#39;/app&#39;</span><span class="p">,</span> <span class="s1">&#39;/home&#39;</span><span class="p">,</span> <span class="s1">&#39;/usr&#39;</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span> <span class="o">=</span> \
+                <span class="n">_read_in_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+        <span class="c1"># check that all values in scan_dirs are valid abs paths</span>
+        <span class="n">invalid_paths</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">check_path_validity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">invalid_paths</span> <span class="o">!=</span> <span class="p">[]:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid paths were supplied to the --scan-dirs option: &quot;</span> <span class="o">+</span>
+                    <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">invalid_paths</span><span class="p">)))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># pylint: disable=too-many-statements</span>
+    <span class="k">def</span> <span class="nf">_do_command</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># pylint: disable=too-many-locals</span>
+        <span class="c1"># pylint: disable=too-many-branches</span>
+        <span class="n">vault</span><span class="p">,</span> <span class="n">vault_pass</span> <span class="o">=</span> <span class="n">get_vault_and_password</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">vaultfile</span><span class="p">)</span>
+        <span class="n">profile_found</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">profile_auth_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">profile_ranges</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">profile_port</span> <span class="o">=</span> <span class="mi">22</span>
+        <span class="n">profile</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">profile</span>
+        <span class="n">forks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">ansible_forks</span> \
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">ansible_forks</span> <span class="k">else</span> <span class="s1">&#39;50&#39;</span>
+        <span class="n">report_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">normpath</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">report_path</span><span class="p">))</span>
+        <span class="n">hosts_yml</span> <span class="o">=</span> <span class="n">profile</span> <span class="o">+</span> <span class="n">PROFILE_HOSTS_SUFIX</span>
+        <span class="n">hosts_yml_path</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">get_config_path</span><span class="p">(</span><span class="n">hosts_yml</span><span class="p">)</span>
+
+        <span class="c1"># Checks if profile exists and stores information</span>
+        <span class="c1"># about that profile for later use.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">PROFILES_PATH</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;No profiles exist yet.&#39;</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">CREDENTIALS_PATH</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;No auth credentials exist yet.&#39;</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">profiles_list</span> <span class="o">=</span> <span class="n">vault</span><span class="o">.</span><span class="n">load_as_json</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">PROFILES_PATH</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">curr_profile</span> <span class="ow">in</span> <span class="n">profiles_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">profile</span> <span class="o">==</span> <span class="n">curr_profile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">):</span>
+                <span class="n">profile_found</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="n">profile_ranges</span> <span class="o">=</span> <span class="n">curr_profile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hosts&#39;</span><span class="p">)</span>
+                <span class="n">profile_auths</span> <span class="o">=</span> <span class="n">curr_profile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;auth&#39;</span><span class="p">)</span>
+                <span class="n">profile_port</span> <span class="o">=</span> <span class="n">curr_profile</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ssh_port&#39;</span><span class="p">)</span>
+                <span class="n">cred_list</span> <span class="o">=</span> <span class="n">vault</span><span class="o">.</span><span class="n">load_as_json</span><span class="p">(</span><span class="n">utilities</span><span class="o">.</span><span class="n">CREDENTIALS_PATH</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">auth</span> <span class="ow">in</span> <span class="n">profile_auths</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">cred</span> <span class="ow">in</span> <span class="n">cred_list</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">cred</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">):</span>
+                            <span class="n">profile_auth_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cred</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">profile_found</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Invalid profile. Create profile first&quot;</span><span class="p">))</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># log data about current version of rho and system data</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Version information - rho: </span><span class="si">%s</span><span class="s1">; ansible: </span><span class="si">%s</span><span class="s1">; python: </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
+                 <span class="n">rho_version</span><span class="p">,</span> <span class="n">ansible_version</span><span class="p">,</span> <span class="n">sys</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;System information - platform: &#39;</span>
+                 <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; machine: </span><span class="si">%s</span><span class="s1">; processor: </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">platform</span><span class="o">.</span><span class="n">platform</span><span class="p">(),</span>
+                 <span class="n">platform</span><span class="o">.</span><span class="n">machine</span><span class="p">(),</span> <span class="n">platform</span><span class="o">.</span><span class="n">processor</span><span class="p">())</span>
+
+        <span class="c1"># cache is used when the profile/auth mapping has been previously</span>
+        <span class="c1"># used and does not need to be rerun.</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+            <span class="n">success_hosts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">unreachalbe_hosts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">success_port_map</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">auth_map</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">remaining_hosts</span> <span class="o">=</span> <span class="n">profile_ranges</span>
+            <span class="n">cred_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">cred</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">cred</span> <span class="ow">in</span> <span class="n">profile_auth_list</span><span class="p">]</span>
+            <span class="n">creds_str</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cred_names</span><span class="p">)</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Connection discovery will be perform with the following&#39;</span>
+                     <span class="s1">&#39; auth credentials: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">creds_str</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Connection discovery will be perform with the following&#39;</span>
+                    <span class="s1">&#39; auth credentials: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">creds_str</span><span class="p">)))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Note: Any ssh-agent connection setup for a target host &#39;</span>
+                    <span class="s1">&#39;will be used as a fallback if it exists.&#39;</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">cred_item</span> <span class="ow">in</span> <span class="n">profile_auth_list</span><span class="p">:</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Discovery starting with credential </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
+                         <span class="n">cred_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">))</span>
+                <span class="n">success_hosts_</span><span class="p">,</span> <span class="n">success_port_map_</span><span class="p">,</span> \
+                    <span class="n">auth_map_</span><span class="p">,</span> <span class="n">remaining_hosts_</span><span class="p">,</span> <span class="n">unreachalbe_hosts_</span> <span class="o">=</span> \
+                    <span class="n">host_discovery</span><span class="o">.</span><span class="n">create_ping_inventory</span><span class="p">(</span>
+                        <span class="n">vault</span><span class="p">,</span> <span class="n">vault_pass</span><span class="p">,</span>
+                        <span class="n">remaining_hosts</span><span class="p">,</span>
+                        <span class="n">profile_port</span><span class="p">,</span>
+                        <span class="n">cred_item</span><span class="p">,</span> <span class="n">forks</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+                <span class="n">success_hosts</span> <span class="o">=</span> <span class="n">success_hosts</span> <span class="o">+</span> <span class="n">success_hosts_</span>
+                <span class="n">remaining_hosts</span> <span class="o">=</span> <span class="n">remaining_hosts_</span>
+                <span class="n">unreachalbe_hosts</span> <span class="o">=</span> <span class="n">unreachalbe_hosts_</span>
+                <span class="c1"># If credential used ssh keyfile then re-process unreachable</span>
+                <span class="c1"># systems due to issue #576</span>
+                <span class="k">if</span> <span class="n">cred_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ssh_key_file&#39;</span><span class="p">):</span>
+                    <span class="n">remaining_hosts</span> <span class="o">=</span> <span class="n">remaining_hosts_</span> <span class="o">+</span> <span class="n">unreachalbe_hosts_</span>
+
+                <span class="n">success_port_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">success_port_map_</span><span class="p">)</span>
+                <span class="n">auth_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">auth_map_</span><span class="p">)</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Discovery with credential </span><span class="si">%s</span><span class="s1"> completed.&#39;</span><span class="p">,</span>
+                         <span class="n">cred_item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">success_hosts</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;All auths are invalid for this profile&#39;</span><span class="p">))</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">num_success</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">success_hosts</span><span class="p">)</span>
+            <span class="n">num_failed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">remaining_hosts</span><span class="p">)</span>
+            <span class="n">num_unreachable</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unreachalbe_hosts</span><span class="p">)</span>
+            <span class="n">num_total</span> <span class="o">=</span> <span class="n">num_success</span> <span class="o">+</span> <span class="n">num_failed</span> <span class="o">+</span> <span class="n">num_unreachable</span>
+            <span class="k">if</span> <span class="n">num_failed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">failed_temp</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">failed</span> <span class="ow">in</span> <span class="n">remaining_hosts</span><span class="p">:</span>
+                        <span class="n">failed_temp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">failed</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Failed to connect to </span><span class="si">%d</span><span class="s1"> systems with all auth &#39;</span>
+                            <span class="s1">&#39;credentials. See the following file &quot;</span><span class="si">%s</span><span class="s1">&quot; for a &#39;</span>
+                            <span class="s1">&#39;list  of the failed systems.&#39;</span> <span class="o">%</span>
+                            <span class="p">(</span><span class="n">num_failed</span><span class="p">,</span> <span class="n">failed_temp</span><span class="o">.</span><span class="n">name</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">:</span>
+                    <span class="n">failed_hosts</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">remaining_hosts</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Failed to connect to the following systems: </span><span class="si">%s</span><span class="s1">.&#39;</span>
+                            <span class="o">%</span> <span class="p">(</span><span class="n">failed_hosts</span><span class="p">)))</span>
+                <span class="nb">print</span><span class="p">()</span>
+
+            <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Scan will be performed against </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1"> systems.&#39;</span><span class="p">,</span>
+                     <span class="n">num_success</span><span class="p">,</span> <span class="n">num_total</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s1">&#39;Scan will be performed against </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1"> systems.&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">num_success</span><span class="p">,</span> <span class="n">num_total</span><span class="p">)))</span>
+            <span class="nb">print</span><span class="p">()</span>
+
+            <span class="n">_create_hosts_auths_file</span><span class="p">(</span><span class="n">auth_map</span><span class="p">,</span> <span class="n">profile</span><span class="p">)</span>
+
+            <span class="n">inventory_scan</span><span class="o">.</span><span class="n">create_main_inventory</span><span class="p">(</span><span class="n">vault</span><span class="p">,</span> <span class="n">success_hosts</span><span class="p">,</span>
+                                                 <span class="n">success_port_map</span><span class="p">,</span> <span class="n">auth_map</span><span class="p">,</span>
+                                                 <span class="n">hosts_yml_path</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">hosts_yml_path</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Profile &#39;&quot;</span> <span class="o">+</span> <span class="n">profile</span> <span class="o">+</span> <span class="s2">&quot;&#39; has not been processed. &quot;</span> <span class="o">+</span>
+                  <span class="s2">&quot;Please run without using --cache with the profile first.&quot;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Host scan starting for profile </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">profile</span><span class="p">)</span>
+        <span class="n">inventory_scan</span><span class="o">.</span><span class="n">inventory_scan</span><span class="p">(</span>
+            <span class="n">hosts_yml_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">facts_to_collect</span><span class="p">,</span> <span class="n">report_path</span><span class="p">,</span> <span class="n">vault_pass</span><span class="p">,</span>
+            <span class="n">profile</span><span class="p">,</span> <span class="n">forks</span><span class="o">=</span><span class="n">forks</span><span class="p">,</span> <span class="n">scan_dirs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">scan_dirs</span><span class="p">,</span>
+            <span class="n">log_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">logfile</span><span class="p">,</span>
+            <span class="n">verbosity</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">verbosity</span><span class="p">)</span>
+
+        <span class="n">host_auth_mapping</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">profile</span> <span class="o">+</span> <span class="n">PROFILE_HOST_AUTH_MAPPING_SUFFIX</span>
+        <span class="n">host_auth_mapping_path</span> <span class="o">=</span> \
+            <span class="n">utilities</span><span class="o">.</span><span class="n">get_config_path</span><span class="p">(</span><span class="n">host_auth_mapping</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Host scan completed for profile </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">profile</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">_</span><span class="p">(</span><span class="s2">&quot;Scanning has completed. The mapping has been&quot;</span>
+                <span class="s2">&quot; stored in file &#39;&quot;</span> <span class="o">+</span> <span class="n">host_auth_mapping_path</span> <span class="o">+</span>
+                <span class="s2">&quot;&#39;. The facts have been stored in &#39;&quot;</span> <span class="o">+</span>
+                <span class="n">report_path</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

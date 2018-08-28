@@ -1,0 +1,411 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="rho">
+<h1>rho<a class="headerlink" href="#rho" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="name">
+<h2>Name<a class="headerlink" href="#name" title="Permalink to this headline">¶</a></h2>
+<p>rho - Discover and manage product entitlement metadata on your network.</p>
+</div>
+<div class="section" id="synopsis">
+<h2>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">command</span> <span class="pre">subcommand</span> <span class="pre">[options]</span></code></p>
+</div>
+<div class="section" id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h2>
+<p>Rho, and the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command, is a network discovery and inspection tool to identify environment data, or <em>facts</em>, such as the number of physical and virtual systems on a network, their operating systems and other configuration data, and versions of some key packages and products for almost any Linux or UNIX version. The ability to discover and inspect the software and systems that are running on the network improves your ability to understand and report on your entitlement usage. Ultimately, this discovery and inspection process is part of the larger system administration task of managing your inventories.</p>
+<p>Rho uses two types of profiles to manage the discovery and inspection process. An <em>authentication profile</em> contains credentials such as the username and password or SSH key of the user that runs the discovery and inspection process.  A <em>network profile</em> defines the network, such as a host, subnet, or network that is being monitored, plus includes one or more authentication profiles to use to access that network during the discovery and inspection process. You can save multiple authentication profiles and network profiles to use with Rho in various combinations as you run discovery and inspection processes, or <em>scans</em>.</p>
+<p>By default, the authentication profiles and network profiles that are created when using Rho are stored in encrypted files. The files are encrypted with AES-256 encryption and are decrypted when the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command runs, by using a <em>vault password</em> to access the files.</p>
+<p>Rho is an <em>agentless</em> discovery and inspection tool, so there is no need to install the tool on multiple systems. Discovery and inspection for the entire network is centralized on a single machine.</p>
+<p>This man page describes the commands, subcommands, and options for the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command and includes basic usage information. For more detailed information and examples, including best practices, see the Rho README file.</p>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span></code> performs four major tasks:</p>
+<ul>
+<li><p class="first">Creating authentication profiles:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">add</span> <span class="pre">...</span></code></p>
+</li>
+<li><p class="first">Creating network profiles:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">add</span> <span class="pre">--name=X</span> <span class="pre">--hosts</span> <span class="pre">X</span> <span class="pre">Y</span> <span class="pre">Z</span> <span class="pre">--auth</span> <span class="pre">A</span> <span class="pre">B</span></code></p>
+</li>
+<li><p class="first">Running a scan:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span> <span class="pre">--profile=X</span> <span class="pre">--reportfile=Y</span></code></p>
+</li>
+<li><p class="first">Working with facts that are gathered in a scan:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">fact</span> <span class="pre">...</span></code></p>
+</li>
+</ul>
+<p>The following sections describe these commands, their subcommands, and their options in more detail.</p>
+</div>
+<div class="section" id="authentication-profiles">
+<h2>Authentication Profiles<a class="headerlink" href="#authentication-profiles" title="Permalink to this headline">¶</a></h2>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span></code> command to create and manage authentication profiles.</p>
+<p>An authentication profile defines a set of user credentials to be used during a scan. These user credentials include a username and a password or SSH key. Rho uses SSH to connect to servers on the network and uses authentication profiles to obtain the user credentials that are required to access those servers.</p>
+<p>When a scan runs, it uses a network profile that contains the host names or IP addresses to be accessed. The network profile also contains references to the authentication profiles that are required to access those systems. A single network profile can contain a reference to multiple authentication profiles as needed to connect to all systems in that network.</p>
+<div class="section" id="creating-and-editing-authentication-profiles">
+<h3>Creating and Editing Authentication Profiles<a class="headerlink" href="#creating-and-editing-authentication-profiles" title="Permalink to this headline">¶</a></h3>
+<p>To create an authentication profile, supply SSH credentials as either a username-password pair or a username-key pair. Rho stores each set of credentials in a separate authentication profile entry.</p>
+<p><strong>rho auth add –name=</strong> <em>name</em> <strong>–username=</strong> <em>username</em> <strong>(–password | –sshkeyfile=</strong> <em>key_file</em> <strong>)</strong> <strong>[–sudo-password]</strong> <strong>[–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=name</span></code></p>
+<blockquote>
+<div>Required. Sets the name of the new authentication profile. For the value, use a descriptive name that is meaningful to your organization. For example, you could identify the user or server that the authentication profile relates to, such as <code class="docutils literal notranslate"><span class="pre">admin12</span></code> or <code class="docutils literal notranslate"><span class="pre">server1_jdoe</span></code>. Do not include the password as part of this value, because the value for the <code class="docutils literal notranslate"><span class="pre">--name</span></code> option might be logged or printed during <code class="docutils literal notranslate"><span class="pre">rho</span></code> execution.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--username=username</span></code></p>
+<blockquote>
+<div>Required. Sets the username of the SSH identity that is used to bind to the server.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--password</span></code></p>
+<blockquote>
+<div>Prompts for the password for the <code class="docutils literal notranslate"><span class="pre">--username</span></code> identity. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--sshkeyfile</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--sshkeyfile=key_file</span></code></p>
+<blockquote>
+<div>Sets the path of the file that contains the private SSH key for the <code class="docutils literal notranslate"><span class="pre">--username</span></code> identity. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--password</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--sudo-password</span></code></p>
+<blockquote>
+<div>Prompts for the password to be used when running a command that uses sudo on the systems to be scanned.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. The vault password is the password that controls access to the encrypted Rho data such as authentication and network profiles, scan data, and other information. If you do not have a file to use as the value for this option, do not use the option. You are then prompted to enter the vault password or to create a new vault password if one does not exist. At any time, you can save this password in a file such as a text file. You can then use the –vault option in subsequent Rho commands. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+<p>The information in an authentication profile, such as a password, sudo password, SSH keys, or even the username, might change. For example, network security might require passwords to be updated every few months. Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">edit</span></code> command to change the SSH credential information in an authentication profile. The parameters for <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">edit</span></code> are the same as those for <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">add</span></code>.</p>
+<p><strong>rho auth edit –name=</strong> <em>name</em> <strong>–username=</strong> <em>username</em> <strong>(–password | –sshkeyfile=</strong> <em>key_file</em> <strong>)</strong> <strong>[–sudo-password]</strong> <strong>[–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+</div>
+<div class="section" id="listing-and-showing-authentication-profiles">
+<h3>Listing and Showing Authentication Profiles<a class="headerlink" href="#listing-and-showing-authentication-profiles" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">list</span></code> command returns the details for every authentication profile that is configured for Rho. This output includes the name, username, password, SSH keyfile and sudo password for each entry. Passwords are masked if provided, if not, they will appear as <code class="docutils literal notranslate"><span class="pre">null</span></code>.</p>
+<p><strong>rho auth list [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">show</span></code> command is the same as the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">list</span></code> command, except that it returns details for a single specified authentication profile.</p>
+<p><strong>rho auth show –name=</strong> <em>name</em> <strong>[–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=name</span></code></p>
+<blockquote>
+<div>Required. Contains the authentication profile entry to display.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+</div>
+<div class="section" id="clearing-authentication-profiles">
+<h3>Clearing Authentication Profiles<a class="headerlink" href="#clearing-authentication-profiles" title="Permalink to this headline">¶</a></h3>
+<p>As the network infrastructure changes, it might be necessary to delete some authentication profiles. Use the <code class="docutils literal notranslate"><span class="pre">clear</span></code> subcommand to delete authentication profiles.</p>
+<p><strong>IMPORTANT:</strong> Remove or change the authentication profile from any network profile that uses it <em>before</em> clearing an authentication profile. Otherwise, any attempt to use the network profile to run a scan runs the command with a nonexistent authentication profile, an action that causes the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command to fail.</p>
+<p><strong>rho auth clear (–name</strong> <em>name</em> <strong>| –all) [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=name</span></code></p>
+<blockquote>
+<div>Contains the authentication profile to clear. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--all</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--all</span></code></p>
+<blockquote>
+<div>Clears all stored authentication profiles. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--name</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+</div>
+</div>
+<div class="section" id="network-profiles">
+<h2>Network Profiles<a class="headerlink" href="#network-profiles" title="Permalink to this headline">¶</a></h2>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span></code> command to create and manage network profiles.</p>
+<p>A network profile defines a collection of network information, including IP addresses or host names, SSH ports, and SSH credentials. The SSH credentials are provided through reference to one or more authentication profiles. A discovery and inspection scan can reference a network profile so that the act of running the scan is automatic and repeatable, without a requirement to reenter network information for each scan attempt.</p>
+<div class="section" id="creating-and-editing-network-profiles">
+<h3>Creating and Editing Network Profiles<a class="headerlink" href="#creating-and-editing-network-profiles" title="Permalink to this headline">¶</a></h3>
+<p>To create a network profile, supply one or more host names or IP addresses to connect to with the <code class="docutils literal notranslate"><span class="pre">--hosts</span></code> option and the authentication profiles needed to access those systems with the <code class="docutils literal notranslate"><span class="pre">--auth</span></code> option. The <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span></code> command allows multiple entries for each of these options. Therefore, a single network profile can access a collection of servers and subnets as needed to create an accurate and complete scan.</p>
+<p><strong>rho profile add –name=</strong> <em>name</em> <strong>–hosts</strong> <em>ip_address</em> <strong>–auth</strong> <em>auth_profile</em> <strong>[–sshport=</strong> <em>ssh_port</em> <strong>] [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=name</span></code></p>
+<blockquote>
+<div>Required. Sets the name of the new network profile. For the value, use a descriptive name that is meaningful to your organization, such as <code class="docutils literal notranslate"><span class="pre">APSubnet</span></code> or <code class="docutils literal notranslate"><span class="pre">Lab3</span></code>.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--hosts</span> <span class="pre">ip_address</span></code></p>
+<blockquote>
+<div><p>Sets the host name, IP address, or IP address range to use when running a scan. You can also provide a path for a file that contains a list of host names or IP addresses or ranges, where each item is on a separate line. The following examples show several different formats that are allowed as values for the <code class="docutils literal notranslate"><span class="pre">--hosts</span></code> option:</p>
+<ul>
+<li><p class="first">A specific host name:</p>
+<p>–hosts server.example.com</p>
+</li>
+<li><p class="first">A specific IP address:</p>
+<p>–hosts 192.0.2.19</p>
+</li>
+<li><p class="first">An IP address range:</p>
+<p>–hosts 192.0.2.[0:255]
+or
+–hosts 192.0.2.0/24</p>
+</li>
+<li><p class="first">A file:</p>
+<p>–hosts /home/user1/hosts_file</p>
+</li>
+</ul>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--auth</span> <span class="pre">auth_profile</span></code></p>
+<blockquote>
+<div><p>Contains the name of the authentication profile to use to authenticate to the systems that are being scanned. If the individual systems that are being scanned each require different authentication credentials, you can use more than one authentication profile. To add multiple authentication profiles to the network profile, separate each value with a space, for example:</p>
+<p><code class="docutils literal notranslate"><span class="pre">--auth</span> <span class="pre">first_auth</span> <span class="pre">second_auth</span></code></p>
+<p><strong>IMPORTANT:</strong> An authentication profile must exist before you attempt to use it in a network profile.</p>
+</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--sshport=ssh_port</span></code></p>
+<blockquote>
+<div>Sets a port to be used for the scan. This value supports discovery and inspection on a non-standard port. By default, the scan runs on port 22.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+<p>The information in a network profile might change as the structure of the network changes. Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span></code> command to edit a network profile to accommodate those changes.</p>
+<p>Although <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span></code> options can accept more than one value, the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span></code> command is not additive. To edit a network profile and add a new value for an option, you must enter both the current and the new values for that option. Include only the options that you want to change in the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span></code> command. Options that are not included are not changed.</p>
+<p><strong>rho profile edit –name</strong> <em>name</em> <strong>[–hosts</strong> <em>ip_address</em> <strong>] [–auth</strong> <em>auth_profile</em> <strong>] [–sshport=</strong> <em>ssh_port</em> <strong>] [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p>For example, if a network profile contains a value of <code class="docutils literal notranslate"><span class="pre">server1creds</span></code> for the <code class="docutils literal notranslate"><span class="pre">--auth</span></code> option, and you want to change that network profile to use both the <code class="docutils literal notranslate"><span class="pre">server1creds</span></code> and <code class="docutils literal notranslate"><span class="pre">server2creds</span></code> authentication profiles, you would edit the network profile as follows:</p>
+<p><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span> <span class="pre">--name=myprofile</span> <span class="pre">--auth</span> <span class="pre">server1creds</span> <span class="pre">server2creds</span></code></p>
+<p><strong>TIP:</strong> After editing a network profile, use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">show</span></code> command to review those edits.</p>
+</div>
+<div class="section" id="listing-and-showing-network-profiles">
+<h3>Listing and Showing Network Profiles<a class="headerlink" href="#listing-and-showing-network-profiles" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">list</span></code> command returns the details for all configured network profiles. The output of this command includes the host names, IP addresses, or IP ranges, the authentication profiles, and the ports that are configured for each network profile.</p>
+<p><strong>rho profile list [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+<p>The <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">show</span></code> command is the same as the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">list</span></code> command, except that it returns details for a single specified network profile.</p>
+<p><strong>rho profile show –name=</strong> <em>profile</em> <strong>[–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=profile</span></code></p>
+<blockquote>
+<div>Required. Contains the network profile to display.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+</div>
+<div class="section" id="clearing-network-profiles">
+<h3>Clearing Network Profiles<a class="headerlink" href="#clearing-network-profiles" title="Permalink to this headline">¶</a></h3>
+<p>As the network infrastructure changes, it might be necessary to delete some network profiles. Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">clear</span></code> command to delete network profiles.</p>
+<p><strong>rho profile clear (–name=</strong> <em>name</em> <strong>| –all) [–vault=</strong> <em>vault_file</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--name=name</span></code></p>
+<blockquote>
+<div>Contains the network profile to clear. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--all</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--all</span></code></p>
+<blockquote>
+<div>Clears all stored network profiles. Mutually exclusive with the <code class="docutils literal notranslate"><span class="pre">--name</span></code> option.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+</div>
+</div>
+<div class="section" id="facts">
+<h2>Facts<a class="headerlink" href="#facts" title="Permalink to this headline">¶</a></h2>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">fact</span></code> command to view information that can be reported in a scan or to alter the contents of a report that is created from the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span></code> command.</p>
+<div class="section" id="listing-facts">
+<h3>Listing Facts<a class="headerlink" href="#listing-facts" title="Permalink to this headline">¶</a></h3>
+<p>To generate a list of facts that can be gathered during the discovery and inspection scanning process, use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">fact</span> <span class="pre">list</span></code> command.</p>
+<p><strong>rho fact list [–filter=</strong> <em>reg_ex</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--filter=reg_ex</span></code></p>
+<blockquote>
+<div>Optional. Contains a regular expression to use to provide a filtered view of the list of facts. For example, the <code class="docutils literal notranslate"><span class="pre">uname.*</span></code> string returns only those facts that contain that string in the fact name.</div></blockquote>
+</div>
+<div class="section" id="hashing-facts">
+<h3>Hashing Facts<a class="headerlink" href="#hashing-facts" title="Permalink to this headline">¶</a></h3>
+<p>To encrypt sensitive facts within the comma separated values (CSV) file output of a scan, use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">fact</span> <span class="pre">hash</span></code> command. The sensitive facts that are hashed with this command are <em>connection.host, connection.port, uname.all,</em> and <em>uname.hostname.</em></p>
+<p><strong>rho fact hash –reportfile=</strong> <em>file</em> <strong>[–outputfile=</strong> <em>path</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--reportfile=file</span></code></p>
+<blockquote>
+<div>Contains the path of the comma-separated values (CSV) report file to read as input.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--outputfile=path</span></code></p>
+<blockquote>
+<div>Contains the path of the comma-separated values (CSV) report file to be written as output. Creates a new report with the sensitive facts encrypted.</div></blockquote>
+</div>
+</div>
+<div class="section" id="scanning">
+<h2>Scanning<a class="headerlink" href="#scanning" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span></code> command to run discovery and inspection scans on the network. This command scans all of the host names or IP addresses that are defined in the supplied network profile, and then writes the report information to a comma separated values (CSV) file. Note: Any ssh-agent connection setup for a target host ‘</dt>
+<dd>‘will be used as a fallback if it exists.</dd>
+</dl>
+<p><strong>rho scan –profile=</strong> <em>profile_name</em> <strong>–reportfile=</strong> <em>file</em> <strong>[–facts</strong> <em>file or list of facts</em> <strong>] [–scan-dirs=</strong> <em>file or list of remote directories</em> <strong>] [–cache] [–vault=</strong> <em>vault_file</em> <strong>] [–logfile=</strong> <em>log_file</em> <strong>] [–ansible-forks=</strong> <em>num_forks</em> <strong>]</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">--profile=profile_name</span></code></p>
+<blockquote>
+<div>Contains the name of the network profile to use to run the scan.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--reportfile=file</span></code></p>
+<blockquote>
+<div>Sets the path of the report file to create from the scan output. This file is saved in the comma-separated values (CSV) format.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--facts</span> <span class="pre">fact1</span> <span class="pre">fact2</span></code></p>
+<blockquote>
+<div>Contains the list of facts that are returned in the scan report. You can provide multiple values for this option, with each value separated by a space, or provide a path to a file that contains a list of facts, where each fact is on a separate line. The list below is included as an example and is not exhaustive. Use the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">fact</span> <span class="pre">list</span></code> command to get the full list of available facts.</div></blockquote>
+<ul class="simple">
+<li>cpu.count: number of processors</li>
+<li>cpu.cpu_family: cpu family</li>
+<li>cpu.model_name: cpu model name</li>
+<li>cpu.vendor_id: cpu vendor name</li>
+<li>dmi.bios-vendor: bios vendor name</li>
+<li>etc-release.etc-release: contents of /etc/release (or equivalent)</li>
+<li>instnum.instnum: installation number</li>
+<li>connection.uuid: unique id associate with scan</li>
+<li>connection.ip: ip address</li>
+<li>connection.port: ssh port</li>
+<li>redhat-release.name: name of package that provides ‘redhat-release’</li>
+<li>redhat-release.release: release of package that provides ‘redhat-release’</li>
+<li>redhat-release.version: version of package that provides ‘redhat-release’</li>
+<li>systemid.system_id: Red Hat Network system id</li>
+<li>systemid.username: Red Hat Network username</li>
+<li>virt.virt: host, guest, or baremetal</li>
+<li>virt.type: type of virtual system</li>
+<li>uname.all: uname -a (all)</li>
+<li>uname.hardware_platform: uname -i (hardware_platform)</li>
+<li>uname.hostname: uname -n (hostname)</li>
+<li>uname.kernel: uname -r (kernel)</li>
+<li>uname.os: uname -s (os)</li>
+<li>uname.processor: uname -p (processor)</li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">--scan-dirs</span> <span class="pre">dir1</span> <span class="pre">dir2</span></code></p>
+<blockquote>
+<div>Contains the list of directories on remote systems to scan for products. This option is intended to help scope a scan for systems with a very large file system under the root directory. You can provide multiple values for this option, with each value separated by a space, or provide a path to a file that contains a list of directories, where each directory is on a separate line.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--cache</span></code></p>
+<blockquote>
+<div>Restricts the scope of the scan to the hosts that were discovered in the previous scan. Use this option to discover software on hosts that were discovered in a previous scan. Do not use this option to scan for new hosts.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--vault=vault_file</span></code></p>
+<blockquote>
+<div>Contains the path of the file that contains the vault password. Because the encrypted Rho data could contain sensitive information, make sure that this vault password file is stored in a location that has limited access.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--logfile=log_file</span></code></p>
+<blockquote>
+<div>Contains the path of the log file for this instance of the <code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span></code> command.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">--ansible-forks=num_forks</span></code></p>
+<blockquote>
+<div>Sets the number of systems to scan in parallel. The default number is 50 concurrent connections.</div></blockquote>
+</div>
+<div class="section" id="options-for-all-commands">
+<h2>Options for All Commands<a class="headerlink" href="#options-for-all-commands" title="Permalink to this headline">¶</a></h2>
+<p>The following options are available for every Rho command.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--help</span></code></p>
+<blockquote>
+<div>Prints the help for the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command or subcommand.</div></blockquote>
+<p><code class="docutils literal notranslate"><span class="pre">-v</span></code></p>
+<blockquote>
+<div>Enables the verbose mode. The <code class="docutils literal notranslate"><span class="pre">-vvv</span></code> option increases verbosity to show more information. The <code class="docutils literal notranslate"><span class="pre">-vvvv</span></code> option enables connection debugging.</div></blockquote>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Creating a new authentication profile with a keyfile:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">add</span> <span class="pre">--name=new-creds</span> <span class="pre">--username=rho-user</span> <span class="pre">--sshkeyfile=/etc/ssh/ssh_host_rsa_key</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Creating a new authentication profile with a password:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">auth</span> <span class="pre">add</span> <span class="pre">--name=other-creds</span> <span class="pre">--username=rho-user-pass</span> <span class="pre">--password</span></code></td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Creating a new profile:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">add</span> <span class="pre">--name=new-profile</span> <span class="pre">--hosts</span> <span class="pre">1.192.0.19</span> <span class="pre">--auth</span> <span class="pre">new-creds</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Editing a profile:</th></tr>
+<tr class="field-even field"><td>&#160;</td><td class="field-body"><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">profile</span> <span class="pre">edit</span> <span class="pre">--name=new-profile</span> <span class="pre">--hosts</span> <span class="pre">1.192.0.[0:255]</span> <span class="pre">--auth</span> <span class="pre">new-creds</span> <span class="pre">other-creds</span></code></td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Running a scan with a profile:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body"><code class="docutils literal notranslate"><span class="pre">rho</span> <span class="pre">scan</span> <span class="pre">--profile=new-profile</span> <span class="pre">--reportfile=/home/jsmith/Desktop/output.csv</span></code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="security-considerations">
+<h2>Security Considerations<a class="headerlink" href="#security-considerations" title="Permalink to this headline">¶</a></h2>
+<p>The authentication profile credentials that are used to access servers are stored with the network profile configuration in an AES-256 encrypted configuration file. A vault password is used to access this file. The vault password and decrypted file contents are in the system memory, and could theoretically be written to disk if memory swapping is enabled.</p>
+<p>Although you can run the <code class="docutils literal notranslate"><span class="pre">rho</span></code> command without prompts (such as scheduling a cron job) by using a file to pass the vault password, the use of a file for vault password storage is not without risk; therefore, its use requires caution. The vault password allows access to encrypted Rho data that could contain sensitive information. Make sure that this vault password file, if used, is stored in a location that has limited access.</p>
+</div>
+<div class="section" id="authors">
+<h2>Authors<a class="headerlink" href="#authors" title="Permalink to this headline">¶</a></h2>
+<p>The rho tool was originally written by Adrian Likins &lt;alikins-at-redhat.com&gt;, Devan Goodwin &lt;dgoodwin-at-redhat.com&gt;, Jesus M. Rodriguez &lt;jesusr-at-redhat.com&gt;, and Chris Snyder &lt;<a class="reference external" href="mailto:csnyder&#37;&#52;&#48;redhat&#46;com">csnyder<span>&#64;</span>redhat<span>&#46;</span>com</a>&gt; of Red Hat, Inc.
+rho has been continued to be enhanced by Karthik Harihar Reddy Battula &lt;<a class="reference external" href="mailto:karthikhhr&#37;&#52;&#48;gmail&#46;com">karthikhhr<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;, Chris Hambridge &lt;<a class="reference external" href="mailto:chambrid&#37;&#52;&#48;redhat&#46;com">chambrid<span>&#64;</span>redhat<span>&#46;</span>com</a>&gt;, and Noah Lavine &lt;<a class="reference external" href="mailto:nlavine&#37;&#52;&#48;redhat&#46;com">nlavine<span>&#64;</span>redhat<span>&#46;</span>com</a>&gt;.</p>
+</div>
+<div class="section" id="copyright">
+<h2>Copyright<a class="headerlink" href="#copyright" title="Permalink to this headline">¶</a></h2>
+<ol class="loweralpha simple" start="3">
+<li>2017 Red Hat, Inc. Licensed under the GNU Public License version 2.</li>
+</ol>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/man.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

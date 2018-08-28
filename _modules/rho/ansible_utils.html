@@ -1,0 +1,312 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho.ansible_utils &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for rho.ansible_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2017 Red Hat, Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># This software is licensed to you under the GNU General Public License,</span>
+<span class="c1"># version 2 (GPLv2). There is NO WARRANTY for this software, express or</span>
+<span class="c1"># implied, including the implied warranties of MERCHANTABILITY or FITNESS</span>
+<span class="c1"># FOR A PARTICULAR PURPOSE. You should have received a copy of GPLv2</span>
+<span class="c1"># along with this software; if not, see</span>
+<span class="c1"># http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt.</span>
+
+<span class="sd">&quot;&quot;&quot;Utilities for wrapping Ansible.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">from</span> <span class="nn">getpass</span> <span class="k">import</span> <span class="n">getpass</span>
+<span class="kn">import</span> <span class="nn">pexpect</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">rho</span> <span class="k">import</span> <span class="n">utilities</span>
+<span class="kn">from</span> <span class="nn">rho.utilities</span> <span class="k">import</span> <span class="n">log</span><span class="p">,</span> <span class="n">ANSIBLE_LOG_PATH</span><span class="p">,</span> <span class="n">str_to_ascii</span>
+
+
+<div class="viewcode-block" id="auth_as_ansible_host_vars"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.auth_as_ansible_host_vars">[docs]</a><span class="k">def</span> <span class="nf">auth_as_ansible_host_vars</span><span class="p">(</span><span class="n">auth</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the Ansible host vars that implement an auth.</span>
+
+<span class="sd">    :param auth: the auth. A dictionary with fields &#39;id&#39;, &#39;name&#39;,</span>
+<span class="sd">        &#39;username&#39;, &#39;password&#39;, and &#39;ssh_key_file&#39;.</span>
+
+<span class="sd">    :returns: a dict that can be used as the host variables in an</span>
+<span class="sd">        Ansible inventory.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">username</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;username&#39;</span><span class="p">)</span>
+    <span class="n">password</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;password&#39;</span><span class="p">)</span>
+    <span class="n">ssh_key_file</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ssh_key_file&#39;</span><span class="p">)</span>
+    <span class="n">sudo_password</span> <span class="o">=</span> <span class="n">auth</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sudo_password&#39;</span><span class="p">)</span>
+
+    <span class="n">ansible_vars</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">ansible_vars</span><span class="p">[</span><span class="s1">&#39;ansible_user&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">str_to_ascii</span><span class="p">(</span><span class="n">username</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">password</span><span class="p">:</span>
+        <span class="n">ansible_vars</span><span class="p">[</span><span class="s1">&#39;ansible_ssh_pass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">str_to_ascii</span><span class="p">(</span><span class="n">password</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ssh_key_file</span><span class="p">:</span>
+        <span class="n">ansible_vars</span><span class="p">[</span><span class="s1">&#39;ansible_ssh_private_key_file&#39;</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="n">str_to_ascii</span><span class="p">(</span><span class="n">ssh_key_file</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">sudo_password</span><span class="p">:</span>
+        <span class="n">ansible_vars</span><span class="p">[</span><span class="s1">&#39;ansible_become_pass&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sudo_password</span>
+
+    <span class="k">return</span> <span class="n">ansible_vars</span></div>
+
+
+<div class="viewcode-block" id="redact_dict"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.redact_dict">[docs]</a><span class="k">def</span> <span class="nf">redact_dict</span><span class="p">(</span><span class="n">redact_key_list</span><span class="p">,</span> <span class="n">a_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Redact_values in a dictionary</span>
+
+<span class="sd">    :param redact_key_list: keys in dictionary that value should be redacted</span>
+<span class="sd">    :param a_dict: A dictionary to redact</span>
+<span class="sd">    :returns: the redacted dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">redact_key_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">a_dict</span><span class="p">:</span>
+            <span class="n">a_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">PASSWORD_MASKING</span>
+    <span class="k">return</span> <span class="n">a_dict</span></div>
+
+
+<div class="viewcode-block" id="log_yaml_inventory"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.log_yaml_inventory">[docs]</a><span class="k">def</span> <span class="nf">log_yaml_inventory</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">inventory</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Log yaml inventory but mask passwords</span>
+
+<span class="sd">    :param inventory: A dictionary of the ansible inventory</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">redact_key_list</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ansible_become_pass&#39;</span><span class="p">,</span> <span class="s1">&#39;ansible_ssh_pass&#39;</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">inventory</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">hosts_dict</span> <span class="o">=</span> <span class="n">inventory</span><span class="p">[</span><span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hosts&#39;</span><span class="p">)</span>
+        <span class="n">vars_dict</span> <span class="o">=</span> <span class="n">inventory</span><span class="p">[</span><span class="n">group</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;vars&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">host_dict</span> <span class="ow">in</span> <span class="n">hosts_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">host_dict</span> <span class="o">=</span> <span class="n">redact_dict</span><span class="p">(</span><span class="n">redact_key_list</span><span class="p">,</span> <span class="n">host_dict</span><span class="p">)</span>
+
+        <span class="n">vars_dict</span> <span class="o">=</span> <span class="n">redact_dict</span><span class="p">(</span><span class="n">redact_key_list</span><span class="p">,</span> <span class="n">vars_dict</span><span class="p">)</span>
+
+    <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">inventory</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">inventory</span></div>
+
+
+<div class="viewcode-block" id="AnsibleProcessException"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.AnsibleProcessException">[docs]</a><span class="k">class</span> <span class="nc">AnsibleProcessException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception raised when an Ansible process fails.&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="AnsibleTimeoutException"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.AnsibleTimeoutException">[docs]</a><span class="k">class</span> <span class="nc">AnsibleTimeoutException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exception raised when an Ansible process times out.&quot;&quot;&quot;</span>
+
+    <span class="k">pass</span></div>
+
+
+<span class="c1"># pylint: disable=too-many-arguments,too-many-branches</span>
+<span class="c1"># pylint: disable=too-many-statements,too-many-locals</span>
+<div class="viewcode-block" id="run_with_vault"><a class="viewcode-back" href="../../rho.html#rho.ansible_utils.run_with_vault">[docs]</a><span class="k">def</span> <span class="nf">run_with_vault</span><span class="p">(</span><span class="n">cmd_string</span><span class="p">,</span> <span class="n">vault_pass</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">log_to_stdout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">log_to_stdout_env</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">ansible_verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">print_before_run</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_on_failure</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs ansible command allowing for password to be provided after</span>
+<span class="sd">    process triggered.</span>
+
+<span class="sd">    Returns after the process completes.</span>
+
+<span class="sd">    :param cmd_string: the command to run.</span>
+<span class="sd">    :param vault_pass: the password to the user&#39;s Ansible Vault.</span>
+<span class="sd">    :param env: the environment to run the subprocess in.</span>
+<span class="sd">    :param log_path: a path to write the process&#39;s log to. Defaults to</span>
+<span class="sd">        &#39;XDG_DATA_HOME/rho/ansible_log&#39;.</span>
+<span class="sd">    :param log_to_stdout: if not None, write Ansible&#39;s log to stdout using</span>
+<span class="sd">        the provided function as a filter. Defaults to None.</span>
+<span class="sd">    :param log_to_stdout_env: a dictionary of environment variables</span>
+<span class="sd">    :param ansible_verbosity: the number of v&#39;s of Ansible verbosity.</span>
+<span class="sd">    :param timeout: timeout, in seconds, for the called process.</span>
+
+<span class="sd">    :param print_before_run: if true, print the command string before running</span>
+<span class="sd">        it. Defaults to False.</span>
+<span class="sd">    :returns: the popen.spawn object for the process.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># pexpect provides the ability to send the process&#39;s output to a</span>
+    <span class="c1"># single Python file object. We want to send it to a file and</span>
+    <span class="c1"># maybe also stdout. The solution is to have pexpect log to the</span>
+    <span class="c1"># file and then use &#39;tail -f&#39; to copy that to stdout.</span>
+    <span class="n">tail_process</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">log_path</span><span class="p">:</span>
+        <span class="n">log_path</span> <span class="o">=</span> <span class="n">ANSIBLE_LOG_PATH</span>
+
+    <span class="k">if</span> <span class="n">ansible_verbosity</span><span class="p">:</span>
+        <span class="n">cmd_string</span> <span class="o">=</span> <span class="n">cmd_string</span> <span class="o">+</span> <span class="s1">&#39; -&#39;</span> <span class="o">+</span> <span class="s1">&#39;v&#39;</span> <span class="o">*</span> <span class="n">ansible_verbosity</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">utilities</span><span class="o">.</span><span class="n">ensure_data_dir_exists</span><span class="p">()</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">logfile</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span> <span class="s1">&#39;r+b&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">logfile</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Running Ansible: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">cmd_string</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">print_before_run</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Running:&#39;</span><span class="p">,</span> <span class="n">cmd_string</span><span class="p">)</span>
+            <span class="n">child</span> <span class="o">=</span> <span class="n">pexpect</span><span class="o">.</span><span class="n">spawn</span><span class="p">(</span><span class="n">cmd_string</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+                                  <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">log_to_stdout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">tail_process</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">tail_log</span><span class="p">(</span><span class="n">log_path</span><span class="p">,</span>
+                                                      <span class="n">ansible_verbosity</span><span class="p">,</span>
+                                                      <span class="n">log_to_stdout</span><span class="p">,</span>
+                                                      <span class="n">log_to_stdout_env</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+                    <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Unable to tail Ansible log: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ex</span><span class="p">)</span>
+
+            <span class="n">child</span><span class="o">.</span><span class="n">expect</span><span class="p">(</span><span class="s1">&#39;Vault password:&#39;</span><span class="p">)</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">vault_pass</span><span class="p">)</span>
+            <span class="c1"># Set the log file *after* we send the user&#39;s Vault</span>
+            <span class="c1"># password to Ansible, so we don&#39;t log the password.</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">logfile</span> <span class="o">=</span> <span class="n">logfile</span>
+            <span class="n">last_pos</span> <span class="o">=</span> <span class="n">logfile</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+
+            <span class="n">i</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">expect</span><span class="p">([</span><span class="n">pexpect</span><span class="o">.</span><span class="n">EOF</span><span class="p">,</span> <span class="s1">&#39;Enter passphrase for key .*:&#39;</span><span class="p">,</span>
+                              <span class="s1">&#39;you want to continue connecting (yes/no)?&#39;</span><span class="p">])</span>
+            <span class="k">while</span> <span class="n">i</span><span class="p">:</span>
+                <span class="n">new_pos</span> <span class="o">=</span> <span class="n">logfile</span><span class="o">.</span><span class="n">tell</span><span class="p">()</span>
+                <span class="n">logfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">last_pos</span><span class="p">)</span>
+                <span class="n">logfile_lines</span> <span class="o">=</span> <span class="n">logfile</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+                <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">logfile_lines</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">logfile_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">logfile</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">new_pos</span><span class="p">)</span>
+                <span class="n">last_pos</span> <span class="o">=</span> <span class="n">new_pos</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">logfile</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="c1"># Ansible has already printed a prompt; it would be</span>
+                <span class="c1"># confusing if getpass printed another one.</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">sendline</span><span class="p">(</span><span class="n">getpass</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">))</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">logfile</span> <span class="o">=</span> <span class="n">logfile</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="n">child</span><span class="o">.</span><span class="n">expect</span><span class="p">([</span><span class="n">pexpect</span><span class="o">.</span><span class="n">EOF</span><span class="p">,</span> <span class="s1">&#39;Enter passphrase for key .*:&#39;</span><span class="p">,</span>
+                                  <span class="s1">&#39;you want to continue connecting (yes/no)?&#39;</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">isalive</span><span class="p">():</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">log_to_stdout</span><span class="p">:</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">pexpect</span><span class="o">.</span><span class="n">EOF</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: unexpected Ansible output&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tail_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tail_process</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">pexpect</span><span class="o">.</span><span class="n">TIMEOUT</span><span class="p">:</span>
+        <span class="n">child</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">tail_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">tail_process</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">timeout</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Error: unexpected Ansible output&#39;</span><span class="p">)</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="n">AnsibleTimeoutException</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">tail_process</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tail_process</span><span class="o">.</span><span class="n">terminate</span><span class="p">()</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">exitstatus</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">child</span><span class="o">.</span><span class="n">exitstatus</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">)</span> <span class="ow">or</span> <span class="n">child</span><span class="o">.</span><span class="n">signalstatus</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">error_on_failure</span> <span class="ow">is</span> <span class="kc">False</span> <span class="ow">and</span> <span class="n">child</span><span class="o">.</span><span class="n">exitstatus</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AnsibleProcessException</span><span class="p">(</span>
+                <span class="s1">&#39;Ansible process failed with status </span><span class="si">%s</span><span class="s1">, signal status </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                <span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">exitstatus</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">signalstatus</span><span class="p">))</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

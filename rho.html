@@ -1,0 +1,1678 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>rho package &#8212; rho 2.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="rho-package">
+<h1>rho package<a class="headerlink" href="#rho-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-rho.ansible_utils">
+<span id="rho-ansible-utils-module"></span><h2>rho.ansible_utils module<a class="headerlink" href="#module-rho.ansible_utils" title="Permalink to this headline">¶</a></h2>
+<p>Utilities for wrapping Ansible.</p>
+<dl class="exception">
+<dt id="rho.ansible_utils.AnsibleProcessException">
+<em class="property">exception </em><code class="descclassname">rho.ansible_utils.</code><code class="descname">AnsibleProcessException</code><a class="reference internal" href="_modules/rho/ansible_utils.html#AnsibleProcessException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.AnsibleProcessException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised when an Ansible process fails.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="rho.ansible_utils.AnsibleTimeoutException">
+<em class="property">exception </em><code class="descclassname">rho.ansible_utils.</code><code class="descname">AnsibleTimeoutException</code><a class="reference internal" href="_modules/rho/ansible_utils.html#AnsibleTimeoutException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.AnsibleTimeoutException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception raised when an Ansible process times out.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.ansible_utils.auth_as_ansible_host_vars">
+<code class="descclassname">rho.ansible_utils.</code><code class="descname">auth_as_ansible_host_vars</code><span class="sig-paren">(</span><em>auth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/ansible_utils.html#auth_as_ansible_host_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.auth_as_ansible_host_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the Ansible host vars that implement an auth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>auth</strong> – the auth. A dictionary with fields ‘id’, ‘name’,
+‘username’, ‘password’, and ‘ssh_key_file’.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a dict that can be used as the host variables in an
+Ansible inventory.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.ansible_utils.log_yaml_inventory">
+<code class="descclassname">rho.ansible_utils.</code><code class="descname">log_yaml_inventory</code><span class="sig-paren">(</span><em>label</em>, <em>inventory</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/ansible_utils.html#log_yaml_inventory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.log_yaml_inventory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Log yaml inventory but mask passwords</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>inventory</strong> – A dictionary of the ansible inventory</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.ansible_utils.redact_dict">
+<code class="descclassname">rho.ansible_utils.</code><code class="descname">redact_dict</code><span class="sig-paren">(</span><em>redact_key_list</em>, <em>a_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/ansible_utils.html#redact_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.redact_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Redact_values in a dictionary</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>redact_key_list</strong> – keys in dictionary that value should be redacted</li>
+<li><strong>a_dict</strong> – A dictionary to redact</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the redacted dictionary</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.ansible_utils.run_with_vault">
+<code class="descclassname">rho.ansible_utils.</code><code class="descname">run_with_vault</code><span class="sig-paren">(</span><em>cmd_string</em>, <em>vault_pass</em>, <em>env=None</em>, <em>log_path=None</em>, <em>log_to_stdout=None</em>, <em>log_to_stdout_env=None</em>, <em>ansible_verbosity=0</em>, <em>timeout=None</em>, <em>print_before_run=False</em>, <em>error_on_failure=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/ansible_utils.html#run_with_vault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.ansible_utils.run_with_vault" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs ansible command allowing for password to be provided after
+process triggered.</p>
+<p>Returns after the process completes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cmd_string</strong> – the command to run.</li>
+<li><strong>vault_pass</strong> – the password to the user’s Ansible Vault.</li>
+<li><strong>env</strong> – the environment to run the subprocess in.</li>
+<li><strong>log_path</strong> – a path to write the process’s log to. Defaults to
+‘XDG_DATA_HOME/rho/ansible_log’.</li>
+<li><strong>log_to_stdout</strong> – if not None, write Ansible’s log to stdout using
+the provided function as a filter. Defaults to None.</li>
+<li><strong>log_to_stdout_env</strong> – a dictionary of environment variables</li>
+<li><strong>ansible_verbosity</strong> – the number of v’s of Ansible verbosity.</li>
+<li><strong>timeout</strong> – timeout, in seconds, for the called process.</li>
+<li><strong>print_before_run</strong> – if true, print the command string before running
+it. Defaults to False.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the popen.spawn object for the process.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.authaddcommand">
+<span id="rho-authaddcommand-module"></span><h2>rho.authaddcommand module<a class="headerlink" href="#module-rho.authaddcommand" title="Permalink to this headline">¶</a></h2>
+<p>AuthAddCommand is used to add authentication credentials
+for system access</p>
+<dl class="class">
+<dt id="rho.authaddcommand.AuthAddCommand">
+<em class="property">class </em><code class="descclassname">rho.authaddcommand.</code><code class="descname">AuthAddCommand</code><a class="reference internal" href="_modules/rho/authaddcommand.html#AuthAddCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authaddcommand.AuthAddCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for creating new auths which can be later associated with
+profiles to gather facts.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.authaddcommand.auth_exists">
+<code class="descclassname">rho.authaddcommand.</code><code class="descname">auth_exists</code><span class="sig-paren">(</span><em>cred_list</em>, <em>auth_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/authaddcommand.html#auth_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authaddcommand.auth_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether authentication credential already exists</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cred_list</strong> – A list of credential dictionaries</li>
+<li><strong>auth_name</strong> – Name of credential to check for existence</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True if auth_name exists, False otherwise</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.authaddcommand.make_auth_for_options">
+<code class="descclassname">rho.authaddcommand.</code><code class="descname">make_auth_for_options</code><span class="sig-paren">(</span><em>options</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/authaddcommand.html#make_auth_for_options"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authaddcommand.make_auth_for_options" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the OrderedDict auth given our options.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>options</strong> – an options object, from optparse</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">an OrderedDict representing the auth being added</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.authclearcommand">
+<span id="rho-authclearcommand-module"></span><h2>rho.authclearcommand module<a class="headerlink" href="#module-rho.authclearcommand" title="Permalink to this headline">¶</a></h2>
+<p>AuthClearCommand is for removing a specific or all
+existing authentication credentials.</p>
+<dl class="class">
+<dt id="rho.authclearcommand.AuthClearCommand">
+<em class="property">class </em><code class="descclassname">rho.authclearcommand.</code><code class="descname">AuthClearCommand</code><a class="reference internal" href="_modules/rho/authclearcommand.html#AuthClearCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authclearcommand.AuthClearCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for removing a specific
+or all existing auths.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.autheditcommand">
+<span id="rho-autheditcommand-module"></span><h2>rho.autheditcommand module<a class="headerlink" href="#module-rho.autheditcommand" title="Permalink to this headline">¶</a></h2>
+<p>AuthEditCommand is used to edit existing authentication credentials
+for system access</p>
+<dl class="class">
+<dt id="rho.autheditcommand.AuthEditCommand">
+<em class="property">class </em><code class="descclassname">rho.autheditcommand.</code><code class="descname">AuthEditCommand</code><a class="reference internal" href="_modules/rho/autheditcommand.html#AuthEditCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.autheditcommand.AuthEditCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is fpr editing the auths already
+existing. The user can edit the username, password
+and ssh key file path.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.autheditcommand.optional_arg">
+<code class="descclassname">rho.autheditcommand.</code><code class="descname">optional_arg</code><span class="sig-paren">(</span><em>arg_default</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/autheditcommand.html#optional_arg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.autheditcommand.optional_arg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call back function for arg-parse for when arguments are optional</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>arg_default</strong> – The default for the argument</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Function for handling the argument</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.authlistcommand">
+<span id="rho-authlistcommand-module"></span><h2>rho.authlistcommand module<a class="headerlink" href="#module-rho.authlistcommand" title="Permalink to this headline">¶</a></h2>
+<p>AuthListCommand is used to list authentication credentials
+for system access</p>
+<dl class="class">
+<dt id="rho.authlistcommand.AuthListCommand">
+<em class="property">class </em><code class="descclassname">rho.authlistcommand.</code><code class="descname">AuthListCommand</code><a class="reference internal" href="_modules/rho/authlistcommand.html#AuthListCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authlistcommand.AuthListCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for displaying all existing
+auths. Passwords are encrypted in the console.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.authshowcommand">
+<span id="rho-authshowcommand-module"></span><h2>rho.authshowcommand module<a class="headerlink" href="#module-rho.authshowcommand" title="Permalink to this headline">¶</a></h2>
+<p>AuthShowCommand is used to display existing authentication credentials</p>
+<dl class="class">
+<dt id="rho.authshowcommand.AuthShowCommand">
+<em class="property">class </em><code class="descclassname">rho.authshowcommand.</code><code class="descname">AuthShowCommand</code><a class="reference internal" href="_modules/rho/authshowcommand.html#AuthShowCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.authshowcommand.AuthShowCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for displaying an existing
+auth requested. Passwords are encrypted in
+the console.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.cli">
+<span id="rho-cli-module"></span><h2>rho.cli module<a class="headerlink" href="#module-rho.cli" title="Permalink to this headline">¶</a></h2>
+<p>Rho Command Line Interface</p>
+<dl class="class">
+<dt id="rho.cli.CLI">
+<em class="property">class </em><code class="descclassname">rho.cli.</code><code class="descname">CLI</code><a class="reference internal" href="_modules/rho/cli.html#CLI"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.cli.CLI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class responsible for displaying ussage or matching inputs
+to the valid set of commands supported by rho.</p>
+<dl class="method">
+<dt id="rho.cli.CLI.main">
+<code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/cli.html#CLI.main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.cli.CLI.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method determine whether to display usage or pass input
+to find the best command match. If no match is found the
+usage is displayed</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.clicommand">
+<span id="rho-clicommand-module"></span><h2>rho.clicommand module<a class="headerlink" href="#module-rho.clicommand" title="Permalink to this headline">¶</a></h2>
+<p>Base CLI Command Class</p>
+<dl class="class">
+<dt id="rho.clicommand.CliCommand">
+<em class="property">class </em><code class="descclassname">rho.clicommand.</code><code class="descname">CliCommand</code><span class="sig-paren">(</span><em>name='cli'</em>, <em>usage=None</em>, <em>shortdesc=None</em>, <em>description=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/clicommand.html#CliCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.clicommand.CliCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Base class for all sub-commands.</p>
+<dl class="method">
+<dt id="rho.clicommand.CliCommand.main">
+<code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/clicommand.html#CliCommand.main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.clicommand.CliCommand.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>The method that does a basic check for command
+validity and set’s the process in motion.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.facthashcommand">
+<span id="rho-facthashcommand-module"></span><h2>rho.facthashcommand module<a class="headerlink" href="#module-rho.facthashcommand" title="Permalink to this headline">¶</a></h2>
+<p>Hash sensitive facts.</p>
+<dl class="class">
+<dt id="rho.facthashcommand.FactHashCommand">
+<em class="property">class </em><code class="descclassname">rho.facthashcommand.</code><code class="descname">FactHashCommand</code><a class="reference internal" href="_modules/rho/facthashcommand.html#FactHashCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.facthashcommand.FactHashCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>Hash sensitive facts.</p>
+<dl class="method">
+<dt id="rho.facthashcommand.FactHashCommand.read_and_hash">
+<code class="descname">read_and_hash</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/facthashcommand.html#FactHashCommand.read_and_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.facthashcommand.FactHashCommand.read_and_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read the given CSV file and hash the prescribed facts
+:param path: The csv file to read
+:returns: The keys (set) and data (dict) composing the csv file</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.facthashcommand.compute_sha256_hash">
+<code class="descclassname">rho.facthashcommand.</code><code class="descname">compute_sha256_hash</code><span class="sig-paren">(</span><em>input_string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/facthashcommand.html#compute_sha256_hash"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.facthashcommand.compute_sha256_hash" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the sha256 hash for a string
+:param input_string: The string to hash
+:returns: The hex hash value</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.factlistcommand">
+<span id="rho-factlistcommand-module"></span><h2>rho.factlistcommand module<a class="headerlink" href="#module-rho.factlistcommand" title="Permalink to this headline">¶</a></h2>
+<p>List available facts.</p>
+<dl class="class">
+<dt id="rho.factlistcommand.FactListCommand">
+<em class="property">class </em><code class="descclassname">rho.factlistcommand.</code><code class="descname">FactListCommand</code><a class="reference internal" href="_modules/rho/factlistcommand.html#FactListCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.factlistcommand.FactListCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>List available facts.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.facts">
+<span id="rho-facts-module"></span><h2>rho.facts module<a class="headerlink" href="#module-rho.facts" title="Permalink to this headline">¶</a></h2>
+<p>Defining the set of facts that Rho can scan for.</p>
+<dl class="function">
+<dt id="rho.facts.expand_facts">
+<code class="descclassname">rho.facts.</code><code class="descname">expand_facts</code><span class="sig-paren">(</span><em>fact_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/facts.html#expand_facts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.facts.expand_facts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand a list of facts with implicit facts and short names.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fact_names</strong> – a list of fact names</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a set of facts to collect</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.facts.new_fact">
+<code class="descclassname">rho.facts.</code><code class="descname">new_fact</code><span class="sig-paren">(</span><em>fact_name</em>, <em>description</em>, <em>is_default=None</em>, <em>is_sensitive=False</em>, <em>always_collect=False</em>, <em>categories=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/facts.html#new_fact"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.facts.new_fact" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define a new fact.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>fact_name</strong> – the name of the fact.</li>
+<li><strong>description</strong> – a short description of the fact, for ‘rho fact list’
+and the documentation.</li>
+<li><strong>is_default</strong> – whether this fact should be scanned for by default.</li>
+<li><strong>is_sensitive</strong> – whether this fact should be redacted by
+‘rho fact hash’.</li>
+<li><strong>always_collect</strong> – whether rho should always collect this fact.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.host_discovery">
+<span id="rho-host-discovery-module"></span><h2>rho.host_discovery module<a class="headerlink" href="#module-rho.host_discovery" title="Permalink to this headline">¶</a></h2>
+<p>Discover hosts on a network.</p>
+<dl class="function">
+<dt id="rho.host_discovery.create_ping_inventory">
+<code class="descclassname">rho.host_discovery.</code><code class="descname">create_ping_inventory</code><span class="sig-paren">(</span><em>vault</em>, <em>vault_pass</em>, <em>profile_ranges</em>, <em>profile_port</em>, <em>credential</em>, <em>forks</em>, <em>ansible_verbosity</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/host_discovery.html#create_ping_inventory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.host_discovery.create_ping_inventory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find which auths work with which hosts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>vault</strong> – a Vault object</li>
+<li><strong>vault_pass</strong> – password for the Vault?</li>
+<li><strong>profile_ranges</strong> – hosts for the profile</li>
+<li><strong>profile_port</strong> – the SSH port to use</li>
+<li><strong>credential</strong> – auth to use</li>
+<li><strong>forks</strong> – the number of Ansible forks to use</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a tuple of
+(list of IP addresses that worked for any auth,</p>
+<blockquote>
+<div><p>map from host IPs to SSH ports that worked with them,
+map from host IPs to lists of auths that worked with them</p>
+</div></blockquote>
+<p>)</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.host_discovery.process_ping_output">
+<code class="descclassname">rho.host_discovery.</code><code class="descname">process_ping_output</code><span class="sig-paren">(</span><em>out_lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/host_discovery.html#process_ping_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.host_discovery.process_ping_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find successful hosts from the output of a ping command.</p>
+<p>Use this function by using ansible to run echo “Hello” on remote
+hosts, then sending the output to this function.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>out_lines</strong> – an iterator returning lines of Ansible output.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the hosts that pinged successfully, as a set and those that
+failed, as a set.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.inventory_scan">
+<span id="rho-inventory-scan-module"></span><h2>rho.inventory_scan module<a class="headerlink" href="#module-rho.inventory_scan" title="Permalink to this headline">¶</a></h2>
+<p>Scan for software on hosts in an inventory.</p>
+<dl class="function">
+<dt id="rho.inventory_scan.create_main_inventory">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">create_main_inventory</code><span class="sig-paren">(</span><em>vault</em>, <em>hosts</em>, <em>port_map</em>, <em>auth_map</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#create_main_inventory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.create_main_inventory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write an inventory file given the results of host discovery.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>vault</strong> – an Ansible vault to encrypt the results.</li>
+<li><strong>hosts</strong> – a list of hosts in the inventory.</li>
+<li><strong>port_map</strong> – a mapping from hosts to SSH port numbers.</li>
+<li><strong>auth_map</strong> – a mapping from hosts to SSH credentials.</li>
+<li><strong>path</strong> – the path to write the inventory.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.inventory_scan.hosts_by_group">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">hosts_by_group</code><span class="sig-paren">(</span><em>yml_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#hosts_by_group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.hosts_by_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the hosts in each group from an inventory YAML file.</p>
+<p>Note: this works on inventory files written by
+create_main_inventory, but not on any Ansible inventory file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>yml_dict</strong> – the Ansible inventory file, as a Python dict.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a dict of the form
+{‘group name’: [‘host1’, ‘host2’, …],<blockquote>
+<div>… }</div></blockquote>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.inventory_scan.inventory_scan">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">inventory_scan</code><span class="sig-paren">(</span><em>hosts_yml_path</em>, <em>facts_to_collect</em>, <em>report_path</em>, <em>vault_pass</em>, <em>base_name</em>, <em>forks=None</em>, <em>scan_dirs=None</em>, <em>log_path=None</em>, <em>verbosity=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#inventory_scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.inventory_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run an inventory scan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hosts_yml_path</strong> – path to an Ansible inventory file to scan.</li>
+<li><strong>facts_to_collect</strong> – a list of facts to collect.</li>
+<li><strong>report_path</strong> – the path to write a report to.</li>
+<li><strong>vault_pass</strong> – the vault password used to protect user data</li>
+<li><strong>base_name</strong> – the base name of the output files</li>
+<li><strong>forks</strong> – the number of Ansible forks, or None for default.</li>
+<li><strong>scan_dirs</strong> – the directories on the remote host to scan, or None for
+default.</li>
+<li><strong>log_path</strong> – path to log to, or None for default.</li>
+<li><strong>verbosity</strong> – number of v’s of Ansible verbosity.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True if scan completed successfully, False if not.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.inventory_scan.make_inventory_dict">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">make_inventory_dict</code><span class="sig-paren">(</span><em>hosts</em>, <em>port_map</em>, <em>auth_map</em>, <em>group_size=10</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#make_inventory_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.make_inventory_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make the inventory for the scan, as a dict.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hosts</strong> – a list of hosts for the inventory</li>
+<li><strong>port_map</strong> – mapping from hosts to SSH ports</li>
+<li><strong>auth_map</strong> – map from host IP to a list of auths it works with</li>
+<li><strong>group_size</strong> – write hosts in groups of this size</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>a dict with the structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;group1&#39;</span><span class="p">:</span>
+     <span class="p">{</span><span class="s1">&#39;hosts&#39;</span><span class="p">:</span>
+         <span class="p">{</span><span class="s1">&#39;IP address 1&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;host-vars-1&#39;</span><span class="p">},</span>
+          <span class="s1">&#39;IP address 2&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;host-vars-2&#39;</span><span class="p">},</span>
+          <span class="c1"># ...</span>
+         <span class="p">}</span>
+     <span class="p">},</span>
+ <span class="s1">&#39;group2&#39;</span><span class="p">:</span>
+     <span class="p">{</span><span class="s1">&#39;hosts&#39;</span><span class="p">:</span>
+          <span class="o">....</span>
+     <span class="p">},</span>
+ <span class="o">....</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.inventory_scan.process_host_vars">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">process_host_vars</code><span class="sig-paren">(</span><em>facts_to_collect</em>, <em>vars_by_host</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#process_host_vars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.process_host_vars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process Ansible output into output facts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>facts_to_collect</strong> – list of facts to collect.</li>
+<li><strong>vars_by_host</strong> – dictionary (host: facts dictionary)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">list of per host fact dicitionaries</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.inventory_scan.write_fact_report">
+<code class="descclassname">rho.inventory_scan.</code><code class="descname">write_fact_report</code><span class="sig-paren">(</span><em>facts_to_collect</em>, <em>facts_out</em>, <em>report_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/inventory_scan.html#write_fact_report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.inventory_scan.write_fact_report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write fact report.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>facts_to_collect</strong> – The set of facts to output in the report</li>
+<li><strong>facts_out</strong> – list of per host fact dicitionaries</li>
+<li><strong>report_path</strong> – The path to output the report</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.postprocessing">
+<span id="rho-postprocessing-module"></span><h2>rho.postprocessing module<a class="headerlink" href="#module-rho.postprocessing" title="Permalink to this headline">¶</a></h2>
+<p>Postprocessing for facts coming from our Ansible playbook.</p>
+<dl class="class">
+<dt id="rho.postprocessing.PkgInfo">
+<em class="property">class </em><code class="descclassname">rho.postprocessing.</code><code class="descname">PkgInfo</code><span class="sig-paren">(</span><em>row</em>, <em>separator</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>This is an inner class for RedhatPackagesRhoCmd
+class and provides functionality to parse the
+results of running the (only) command string
+named ‘get_package_info’. This is purely to
+make the parsing cleaner and understandable.</p>
+<dl class="attribute">
+<dt id="rho.postprocessing.PkgInfo.RED_HAT_KEYS">
+<code class="descname">RED_HAT_KEYS</code><em class="property"> = ('199e2f91fd431d51', '5326810137017186', '45689c882fa658e0', '219180cddb42a60e', '7514f77d8366b0d9', '45689c882fa658e0')</em><a class="headerlink" href="#rho.postprocessing.PkgInfo.RED_HAT_KEYS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="rho.postprocessing.PkgInfo.details">
+<code class="descname">details</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfo.details"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfo.details" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides package details including name, version and release.
+:returns: String including name, version and release</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.postprocessing.PkgInfo.details_built">
+<code class="descname">details_built</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfo.details_built"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfo.details_built" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides information on when the package was built
+:returns: String including details and build date</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.postprocessing.PkgInfo.details_install">
+<code class="descname">details_install</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfo.details_install"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfo.details_install" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides information on when the package was installed.
+:returns: String including installation date</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.postprocessing.PkgInfo.is_gpg_red_hat_pkg">
+<code class="descname">is_gpg_red_hat_pkg</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfo.is_gpg_red_hat_pkg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfo.is_gpg_red_hat_pkg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines if package is a Red Hat package with known GPG key.
+:returns: True if Red Hat, False otherwise</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="rho.postprocessing.PkgInfoParseException">
+<em class="property">exception </em><code class="descclassname">rho.postprocessing.</code><code class="descname">PkgInfoParseException</code><a class="reference internal" href="_modules/rho/postprocessing.html#PkgInfoParseException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.PkgInfoParseException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseException</span></code></p>
+<p>Defining an exception for failing to parse package information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.classify_kie_file">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">classify_kie_file</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#classify_kie_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.classify_kie_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classify a kie-api-* file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pathname</strong> – the path to the file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a BRMS version string, or None if not a Red Hat kie file.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.classify_releases">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">classify_releases</code><span class="sig-paren">(</span><em>lines</em>, <em>classifications</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#classify_releases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.classify_releases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classify release strings using a dictionary.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.determine_pkg_facts">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">determine_pkg_facts</code><span class="sig-paren">(</span><em>rh_packages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#determine_pkg_facts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.determine_pkg_facts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the last installed and last build packages from the list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rh_packages</strong> – the filtered list of red hat packages</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">tuple of last installed and last built</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.encode_and_join">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">encode_and_join</code><span class="sig-paren">(</span><em>join_char</em>, <em>list_of_strings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#encode_and_join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.encode_and_join" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list of utf-8 encoded strings and join them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>join_char</strong> – The character to join on</li>
+<li><strong>list_of_strings</strong> – Strings to encode and join</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">joined encoded string</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.escape_characters">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">escape_characters</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#escape_characters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.escape_characters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Processes input data values and strips out any newlines or commas</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.generate_eap_summary">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">generate_eap_summary</code><span class="sig-paren">(</span><em>facts_to_collect</em>, <em>facts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#generate_eap_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.generate_eap_summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a single summary fact about whether the machine has EAP.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.generate_fuse_summary">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">generate_fuse_summary</code><span class="sig-paren">(</span><em>facts_to_collect</em>, <em>facts</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#generate_fuse_summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.generate_fuse_summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a single summary fact about whether the machine has Fuse.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.handle_redhat_packages">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">handle_redhat_packages</code><span class="sig-paren">(</span><em>facts</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#handle_redhat_packages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.handle_redhat_packages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of redhat-packages.results
+and supply the appropriate output information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.handle_systemid">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">handle_systemid</code><span class="sig-paren">(</span><em>fact_names</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#handle_systemid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.handle_systemid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of systemid.contents
+and supply the appropriate output information</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_addon_versions">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_addon_versions</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_addon_versions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_addon_versions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classify release strings for JBoss BRMS and FUSE.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fact_names</strong> – the set of fact names that the user requested.</li>
+<li><strong>host_vars</strong> – the host vars from Ansible.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a dict of key-value pairs to output.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_brms_output">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_brms_output</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_brms_output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_brms_output" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process facts for jboss.brms.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_cat_results">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_cat_results</code><span class="sig-paren">(</span><em>filename</em>, <em>cat_out</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_cat_results"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_cat_results" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of a with_items cat from Ansible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_find_jboss_modules_jar">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_find_jboss_modules_jar</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_find_jboss_modules_jar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_find_jboss_modules_jar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of ‘find jboss-modules.jar’</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_find_karaf_jar">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_find_karaf_jar</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_find_karaf_jar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_find_karaf_jar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of ‘find karaf.jar’</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_fuse_init_files">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_fuse_init_files</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_fuse_init_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_fuse_init_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process facts for jboss.fuse.init-files</p>
+<p>Note: these facts are included because they can be useful, but the
+filters are very susceptible to letting through lines which a
+human could easily tell are false positives, but we don’t handle
+that automatically.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_fuse_on_eap">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_fuse_on_eap</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_fuse_on_eap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_fuse_on_eap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find JBoss Fuse when it is layered on top of JBoss EAP.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_id_u_jboss">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_id_u_jboss</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_id_u_jboss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_id_u_jboss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output from ‘id -u jboss’, as run by Ansible</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key-value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_indicator_files">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_indicator_files</code><span class="sig-paren">(</span><em>indicator_files</em>, <em>ls_out</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_indicator_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_indicator_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of a with_items ls from Ansible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_common_files">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_common_files</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_common_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_common_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of ‘test -e &lt;dir&gt;’, for common install paths.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key, value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_home">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_home</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_home"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_home" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the EAP_HOME directory of a JBoss installation, if possible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_init_files">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_init_files</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_init_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_init_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look for jboss and EAP in init system output.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key, value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_locate">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_locate</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_locate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_locate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the results of ‘locate jboss-modules.jar’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key, value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_packages">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_packages</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_packages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_packages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the list of JBoss EAP-related RPMs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key, value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_eap_processes">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_eap_processes</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_eap_processes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_eap_processes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of ‘ps -A -f e | grep eap’</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a dict of key, value pairs to add to the output.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_jboss_versions">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_jboss_versions</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_jboss_versions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_jboss_versions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get JBoss version information from the host_vars.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fact_names</strong> – the set of fact names the user requested.</li>
+<li><strong>host_vars</strong> – the host vars from Ansible.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a dict of key-value pairs to output.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.process_karaf_home">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">process_karaf_home</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#process_karaf_home"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.process_karaf_home" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process karaf_home indicators to detect Fuse-on-Karaf.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.postprocessing.raw_output_present">
+<code class="descclassname">rho.postprocessing.</code><code class="descname">raw_output_present</code><span class="sig-paren">(</span><em>fact_names</em>, <em>host_vars</em>, <em>this_fact</em>, <em>this_var</em>, <em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/postprocessing.html#raw_output_present"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.postprocessing.raw_output_present" title="Permalink to this definition">¶</a></dt>
+<dd><p>Basic sanity checks for processing an Ansible raw command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fact_names</strong> – the facts to be collected</li>
+<li><strong>host_vars</strong> – all variables collected for a host</li>
+<li><strong>this_fact</strong> – the name of the fact we are processing</li>
+<li><strong>this_var</strong> – the name that Ansible has for our output</li>
+<li><strong>command</strong> – the command that was run</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a tuple of
+(None or error dict, None or raw command output).
+The error dict is suitable for inclusion in the rho output
+dictionary. There will not be both errors and raw command
+output. If raw command output is returned, it will have
+fields ‘rc’ and ‘stdout_lines’ or ‘results’.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Usage:</dt>
+<dd><p class="first">err, output = raw_output_present(…)
+if err is not None:</p>
+<blockquote>
+<div>return err</div></blockquote>
+<p class="last">… process output …</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.profileaddcommand">
+<span id="rho-profileaddcommand-module"></span><h2>rho.profileaddcommand module<a class="headerlink" href="#module-rho.profileaddcommand" title="Permalink to this headline">¶</a></h2>
+<p>ProfileAddCommand is used to create profiles that associate hosts
+and authentication credentials</p>
+<dl class="class">
+<dt id="rho.profileaddcommand.ProfileAddCommand">
+<em class="property">class </em><code class="descclassname">rho.profileaddcommand.</code><code class="descname">ProfileAddCommand</code><a class="reference internal" href="_modules/rho/profileaddcommand.html#ProfileAddCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profileaddcommand.ProfileAddCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for creating new profiles
+based on hosts and the auths the user wants
+to associate.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.profileaddcommand.profile_exists">
+<code class="descclassname">rho.profileaddcommand.</code><code class="descname">profile_exists</code><span class="sig-paren">(</span><em>profile_list</em>, <em>profile_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/profileaddcommand.html#profile_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profileaddcommand.profile_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether a network profile already exists</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>profile_list</strong> – A list of profile dictionaries</li>
+<li><strong>profile_name</strong> – Name of a network profile to check for existence</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">True if profile_name exists, False otherwise</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.profileclearcommand">
+<span id="rho-profileclearcommand-module"></span><h2>rho.profileclearcommand module<a class="headerlink" href="#module-rho.profileclearcommand" title="Permalink to this headline">¶</a></h2>
+<p>ProfileClearCommand is used to clear profiles that already existing
+either individually or all profiles</p>
+<dl class="class">
+<dt id="rho.profileclearcommand.ProfileClearCommand">
+<em class="property">class </em><code class="descclassname">rho.profileclearcommand.</code><code class="descname">ProfileClearCommand</code><a class="reference internal" href="_modules/rho/profileclearcommand.html#ProfileClearCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profileclearcommand.ProfileClearCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for removing profiles.
+A user can remove an existing profile by
+passing in the name or ask to delete all
+profiles.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.profileeditcommand">
+<span id="rho-profileeditcommand-module"></span><h2>rho.profileeditcommand module<a class="headerlink" href="#module-rho.profileeditcommand" title="Permalink to this headline">¶</a></h2>
+<p>ProfileEditCommand is used to edit existing profiles that associate hosts
+and authentication credentials</p>
+<dl class="class">
+<dt id="rho.profileeditcommand.ProfileEditCommand">
+<em class="property">class </em><code class="descclassname">rho.profileeditcommand.</code><code class="descname">ProfileEditCommand</code><a class="reference internal" href="_modules/rho/profileeditcommand.html#ProfileEditCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profileeditcommand.ProfileEditCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for editing an existing profile.
+The name of the profile has to be supplied. The
+hosts, auths attached or both can be changed.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.profilelistcommand">
+<span id="rho-profilelistcommand-module"></span><h2>rho.profilelistcommand module<a class="headerlink" href="#module-rho.profilelistcommand" title="Permalink to this headline">¶</a></h2>
+<p>ProfileListCommand is used to list existing profiles that associate hosts
+and authentication credentials</p>
+<dl class="class">
+<dt id="rho.profilelistcommand.ProfileListCommand">
+<em class="property">class </em><code class="descclassname">rho.profilelistcommand.</code><code class="descname">ProfileListCommand</code><a class="reference internal" href="_modules/rho/profilelistcommand.html#ProfileListCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profilelistcommand.ProfileListCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for displaying all existing profiles
+the user has added previously.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.profileshowcommand">
+<span id="rho-profileshowcommand-module"></span><h2>rho.profileshowcommand module<a class="headerlink" href="#module-rho.profileshowcommand" title="Permalink to this headline">¶</a></h2>
+<p>ProfileShowCommand is used to show a specific profiles that associate hosts
+and authentication credentials</p>
+<dl class="class">
+<dt id="rho.profileshowcommand.ProfileShowCommand">
+<em class="property">class </em><code class="descclassname">rho.profileshowcommand.</code><code class="descname">ProfileShowCommand</code><a class="reference internal" href="_modules/rho/profileshowcommand.html#ProfileShowCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.profileshowcommand.ProfileShowCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>This command is for displaying a particular profile
+the user has added previously if it has not been deleted
+already.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.scancommand">
+<span id="rho-scancommand-module"></span><h2>rho.scancommand module<a class="headerlink" href="#module-rho.scancommand" title="Permalink to this headline">¶</a></h2>
+<p>Rho CLI Commands</p>
+<dl class="class">
+<dt id="rho.scancommand.ScanCommand">
+<em class="property">class </em><code class="descclassname">rho.scancommand.</code><code class="descname">ScanCommand</code><a class="reference internal" href="_modules/rho/scancommand.html#ScanCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.scancommand.ScanCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#rho.clicommand.CliCommand" title="rho.clicommand.CliCommand"><code class="xref py py-class docutils literal notranslate"><span class="pre">rho.clicommand.CliCommand</span></code></a></p>
+<p>The command that performs the scanning and collection of
+facts by making the playbook, inventory and running ansible.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.scancommand.redacted_auth_string">
+<code class="descclassname">rho.scancommand.</code><code class="descname">redacted_auth_string</code><span class="sig-paren">(</span><em>auth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/scancommand.html#redacted_auth_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.scancommand.redacted_auth_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format an auth for the host auth mapping file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>auth</strong> – the auth. A dictionary with fields ‘id’, ‘name’,
+‘username’, ‘password’, and ‘ssh_key_file’.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a string of the form
+‘name, username, <strong>****</strong>, ssh_key_file’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.translation">
+<span id="rho-translation-module"></span><h2>rho.translation module<a class="headerlink" href="#module-rho.translation" title="Permalink to this headline">¶</a></h2>
+<p>Rho Translation initalization utility</p>
+</div>
+<div class="section" id="module-rho.utilities">
+<span id="rho-utilities-module"></span><h2>rho.utilities module<a class="headerlink" href="#module-rho.utilities" title="Permalink to this headline">¶</a></h2>
+<p>A set of reusable methods common to many of the commands</p>
+<dl class="exception">
+<dt id="rho.utilities.NotCIDRException">
+<em class="property">exception </em><code class="descclassname">rho.utilities.</code><code class="descname">NotCIDRException</code><a class="reference internal" href="_modules/rho/utilities.html#NotCIDRException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.NotCIDRException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></p>
+<p>Exception for when a string does not look like a CIDR range.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.check_path_validity">
+<code class="descclassname">rho.utilities.</code><code class="descname">check_path_validity</code><span class="sig-paren">(</span><em>path_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#check_path_validity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.check_path_validity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a list of paths it verifies that all paths are valid absolute
+path inputs for a scoped scan. If not it return a list of invalid paths.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path_list</strong> – list of paths to validate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">empty list or list of invalid paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.cidr_to_ansible">
+<code class="descclassname">rho.utilities.</code><code class="descname">cidr_to_ansible</code><span class="sig-paren">(</span><em>ip_range</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#cidr_to_ansible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.cidr_to_ansible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert an IP address range from CIDR to Ansible notation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ip_range</strong> – the IP range, as a string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the IP range, as an Ansible-formatted string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><a class="reference internal" href="#rho.utilities.NotCIDRException" title="rho.utilities.NotCIDRException"><strong>NotCIDRException</strong></a> – if ip_range doesn’t look similar to CIDR
+notation. If it does look like CIDR but isn’t quite right, print out
+error messages and exit.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.ensure_config_dir_exists">
+<code class="descclassname">rho.utilities.</code><code class="descname">ensure_config_dir_exists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#ensure_config_dir_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.ensure_config_dir_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure the Rho configuration directory exists.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.ensure_data_dir_exists">
+<code class="descclassname">rho.utilities.</code><code class="descname">ensure_data_dir_exists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#ensure_data_dir_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.ensure_data_dir_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensure the Rho data directory exists.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.get_config_path">
+<code class="descclassname">rho.utilities.</code><code class="descname">get_config_path</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#get_config_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.get_config_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides the path for a configuration filename</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> – The filename to return the config path for</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">path to for filename in XDG_CONFIG_HOME associated with rho</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.is_stringlike">
+<code class="descclassname">rho.utilities.</code><code class="descname">is_stringlike</code><span class="sig-paren">(</span><em>obj</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#is_stringlike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.is_stringlike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if an object is a string.</p>
+<p>This function is for Python 2 and 3 compatibility.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.iteritems">
+<code class="descclassname">rho.utilities.</code><code class="descname">iteritems</code><span class="sig-paren">(</span><em>dictionary</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#iteritems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.iteritems" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over a dictionary’s (key, value) pairs using Python 2 or 3.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dictionary</strong> – the dictionary to iterate over.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.multi_arg">
+<code class="descclassname">rho.utilities.</code><code class="descname">multi_arg</code><span class="sig-paren">(</span><em>option</em>, <em>opt_str</em>, <em>value</em>, <em>parser</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#multi_arg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.multi_arg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call back function for arg-parse for when arguments are multiple</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>option</strong> – The option</li>
+<li><strong>opt_str</strong> – The option string</li>
+<li><strong>value</strong> – The value</li>
+<li><strong>parser</strong> – The parser for handling the option</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.process_discovery_scan">
+<code class="descclassname">rho.utilities.</code><code class="descname">process_discovery_scan</code><span class="sig-paren">(</span><em>line</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#process_discovery_scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.process_discovery_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of a discovery scan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>line</strong> – a line from the discovery scan_log</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.process_host_scan">
+<code class="descclassname">rho.utilities.</code><code class="descname">process_host_scan</code><span class="sig-paren">(</span><em>line</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#process_host_scan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.process_host_scan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the output of a discovery scan.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>line</strong> – a line from the discovery scan_log</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.read_ranges">
+<code class="descclassname">rho.utilities.</code><code class="descname">read_ranges</code><span class="sig-paren">(</span><em>ranges_or_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#read_ranges"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.read_ranges" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process a range list from the user.</p>
+<p>This function reads a hosts file if necessary, validates that all
+IP ranges are in Ansible format, and rewrites CIDR address ranges
+to Ansible format if necessary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ranges_or_path</strong> – either a list of IP address ranges or a one-element
+list where the one element is the path of a file with ranges.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">list of IP address ranges in Ansible format</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.setup_logging">
+<code class="descclassname">rho.utilities.</code><code class="descname">setup_logging</code><span class="sig-paren">(</span><em>verbosity</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#setup_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up Python logging for Rho.</p>
+<p>Must be run after ensure_data_dir_exists().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>verbosity</strong> – verbosity level, as measured in -v’s on the command line.
+Can be None for default.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.str_to_ascii">
+<code class="descclassname">rho.utilities.</code><code class="descname">str_to_ascii</code><span class="sig-paren">(</span><em>in_string</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#str_to_ascii"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.str_to_ascii" title="Permalink to this definition">¶</a></dt>
+<dd><p>Coverts unicode string to ascii string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>in_string</strong> – input string to convert to ascii</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">ASCII encoded string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.strip_prefix">
+<code class="descclassname">rho.utilities.</code><code class="descname">strip_prefix</code><span class="sig-paren">(</span><em>string</em>, <em>prefix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#strip_prefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.strip_prefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a prefix from a string, if present.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>string</strong> – the string to operate on.</li>
+<li><strong>prefix</strong> – the prefix to remove.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">string without prefix, if prefix was present.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.strip_suffix">
+<code class="descclassname">rho.utilities.</code><code class="descname">strip_suffix</code><span class="sig-paren">(</span><em>string</em>, <em>suffix</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#strip_suffix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.strip_suffix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a suffix from a string, if present.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>string</strong> – the string to operate on.</li>
+<li><strong>suffix</strong> – the suffix to remove.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">string without suffix, if suffix was present.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.tail_log">
+<code class="descclassname">rho.utilities.</code><code class="descname">tail_log</code><span class="sig-paren">(</span><em>path</em>, <em>ansible_verbosity</em>, <em>process_output</em>, <em>env=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#tail_log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.tail_log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Follow and provide host scan output</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> – tuple containing the path to file to follow</li>
+<li><strong>ansible_verbosity</strong> – the verbosity level</li>
+<li><strong>process_output</strong> – the method to process the output</li>
+<li><strong>env</strong> – the enviroment to add to tail process</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.validate_port">
+<code class="descclassname">rho.utilities.</code><code class="descname">validate_port</code><span class="sig-paren">(</span><em>arg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#validate_port"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.validate_port" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check that arg is a valid port.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>arg</strong> – either a string or an integer.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The arg, as an integer.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body">ValueError, if arg is not a valid port.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.utilities.write_csv_data">
+<code class="descclassname">rho.utilities.</code><code class="descname">write_csv_data</code><span class="sig-paren">(</span><em>keys</em>, <em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/utilities.html#write_csv_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.utilities.write_csv_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write csv data with input fieldnames a dictionary of data and the file
+path to write to.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>keys</strong> – The field names and keys of the dictionary</li>
+<li><strong>data</strong> – The dictionary of data to convert to csv</li>
+<li><strong>path</strong> – The file path to write to</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho.vault">
+<span id="rho-vault-module"></span><h2>rho.vault module<a class="headerlink" href="#module-rho.vault" title="Permalink to this headline">¶</a></h2>
+<p>Vault is used to read and write data securely using the Ansible vault</p>
+<dl class="class">
+<dt id="rho.vault.Vault">
+<em class="property">class </em><code class="descclassname">rho.vault.</code><code class="descname">Vault</code><span class="sig-paren">(</span><em>password</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>R/W an ansible-vault file</p>
+<dl class="method">
+<dt id="rho.vault.Vault.dump_as_json">
+<code class="descname">dump_as_json</code><span class="sig-paren">(</span><em>obj</em>, <em>stream</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.dump_as_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.dump_as_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to json and encrypt the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – Python object to convert to json</li>
+<li><strong>stream</strong> – The location to write the encrypted data to.
+If this is a file in Python 3, it must be open in binary mode.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.dump_as_json_to_file">
+<code class="descname">dump_as_json_to_file</code><span class="sig-paren">(</span><em>obj</em>, <em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.dump_as_json_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.dump_as_json_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to json and encrypt the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – Python object to convert to json</li>
+<li><strong>file_path</strong> – The file to write data to via temp file</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.dump_as_yaml">
+<code class="descname">dump_as_yaml</code><span class="sig-paren">(</span><em>obj</em>, <em>stream</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.dump_as_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.dump_as_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to yaml and encrypt the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – Python object to convert to yaml</li>
+<li><strong>stream</strong> – The location to write the encrypted data to.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.dump_as_yaml_to_file">
+<code class="descname">dump_as_yaml_to_file</code><span class="sig-paren">(</span><em>obj</em>, <em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.dump_as_yaml_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.dump_as_yaml_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert object to yaml and encrypt the data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>obj</strong> – Python object to convert to yaml</li>
+<li><strong>file_path</strong> – The file to write data to via temp file</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.dump_to_stream">
+<code class="descname">dump_to_stream</code><span class="sig-paren">(</span><em>data</em>, <em>stream</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.dump_to_stream"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.dump_to_stream" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encrypt data and write to stream</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>data</strong> – The information to be encrypted</li>
+<li><strong>stream</strong> – If not None the location to write the encrypted data to.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>stream</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read vault steam and return python object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>stream</strong> – The stream to read data from</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The decrypted data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.load_as_json">
+<code class="descname">load_as_json</code><span class="sig-paren">(</span><em>secure_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.load_as_json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.load_as_json" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read vault secured file and return json decoded object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>secure_file</strong> – The file to read data from as json</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The JSON data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.load_as_yaml">
+<code class="descname">load_as_yaml</code><span class="sig-paren">(</span><em>secure_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.load_as_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.load_as_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read vault secured file and return YAML decoded object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>secure_file</strong> – The file to read data from as yaml</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The YAML data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="rho.vault.Vault.load_secure_file">
+<code class="descname">load_secure_file</code><span class="sig-paren">(</span><em>secure_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#Vault.load_secure_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.Vault.load_secure_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read vault secured file and return python object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>secure_file</strong> – The file to read data from</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The decrpted data</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.vault.get_vault">
+<code class="descclassname">rho.vault.</code><code class="descname">get_vault</code><span class="sig-paren">(</span><em>vaultfile=None</em>, <em>prompt='Please enter your rho vault password: '</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#get_vault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.get_vault" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method that will get the vault password via input file or from
+standard input and then initialize a vault for users</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vaultfile</strong> – The location of a file with the vault password</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An initialized vault</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.vault.get_vault_and_password">
+<code class="descclassname">rho.vault.</code><code class="descname">get_vault_and_password</code><span class="sig-paren">(</span><em>vaultfile=None</em>, <em>prompt='Please enter your rho vault password: '</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#get_vault_and_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.get_vault_and_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method that will get the vault password via input file or from
+standard input and then initialize a vault for users</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vaultfile</strong> – The location of a file with the vault password</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An initialized vault and the password</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.vault.get_vault_password">
+<code class="descclassname">rho.vault.</code><code class="descname">get_vault_password</code><span class="sig-paren">(</span><em>prompt='Please enter your rho vault password: '</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#get_vault_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.get_vault_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Requests the users password from the command line</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.vault.read_vault_password">
+<code class="descclassname">rho.vault.</code><code class="descname">read_vault_password</code><span class="sig-paren">(</span><em>vault_password_file</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#read_vault_password"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.read_vault_password" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads vault password from file for scripting</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vault_password_file</strong> – Path to vault password file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">vault password string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="rho.vault.represent_none">
+<code class="descclassname">rho.vault.</code><code class="descname">represent_none</code><span class="sig-paren">(</span><em>self</em>, <em>_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/rho/vault.html#represent_none"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#rho.vault.represent_none" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render None with nothing in yaml string when dumped</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-rho">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-rho" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">rho</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="command_syntax_usage.html">Command Syntax &amp; Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="command_example.html">Example rho Scan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="remote_programs.html">Remote Programs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="functional_test.html">Functional Testing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">Frequently Asked Questions (FAQ)</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Red Hat.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.7</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/rho.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
