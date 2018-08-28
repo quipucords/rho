@@ -21,6 +21,8 @@ from rho.utilities import (log, PING_INVENTORY_PATH,
                            PING_LOG_PATH,
                            process_discovery_scan)
 
+DEFAULT_DISCOVERY_TIMEOUT = 20
+
 
 def process_ping_output(out_lines):
     """Find successful hosts from the output of a ping command.
@@ -138,7 +140,14 @@ def create_ping_inventory(vault, vault_pass, profile_ranges, profile_port,
     ansible_utils.log_yaml_inventory('Ping inventory', yml_dict)
 
     total_hosts_count = len(all_hosts)
-    rho_discovery_timeout = os.getenv('RHO_DISCOVERY_TIMEOUT', 5)
+    rho_discovery_timeout = os.getenv(
+        'RHO_DISCOVERY_TIMEOUT', DEFAULT_DISCOVERY_TIMEOUT)
+
+    try:
+        rho_discovery_timeout = int(rho_discovery_timeout)
+    except ValueError:
+        rho_discovery_timeout = DEFAULT_DISCOVERY_TIMEOUT
+
     discovery_timeout = ((total_hosts_count // int(forks)) + 1) \
         * rho_discovery_timeout
 

@@ -23,6 +23,8 @@ from rho import vault as vault_module
 from rho.translation import _ as t
 from rho.utilities import str_to_ascii
 
+DEFAULT_HOST_SCAN_TIMEOUT = 30
+
 
 # Creates the filtered main inventory on which the custom
 # modules to collect facts are run. This inventory can be
@@ -313,7 +315,14 @@ def inventory_scan(hosts_yml_path, facts_to_collect, report_path,
                           forks=forks,
                           vars=json.dumps(ansible_vars))
 
-        rho_host_scan_timeout = os.getenv('RHO_HOST_SCAN_TIMEOUT', 10)
+        rho_host_scan_timeout = os.getenv(
+            'RHO_HOST_SCAN_TIMEOUT', DEFAULT_HOST_SCAN_TIMEOUT)
+
+        try:
+            rho_host_scan_timeout = int(rho_host_scan_timeout)
+        except ValueError:
+            rho_host_scan_timeout = DEFAULT_HOST_SCAN_TIMEOUT
+
         host_scan_timeout = ((len(hosts) // int(forks)) + 1) \
             * rho_host_scan_timeout
         utilities.log.info('Starting scan for group "%s" with %d systems'

@@ -22,3 +22,5 @@ doc/source/rho.rst
 .coverage
 .vagrant
 *.retry
+
+.vscode/
